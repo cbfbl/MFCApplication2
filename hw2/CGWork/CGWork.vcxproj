@@ -202,6 +202,7 @@
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BrowseInformation Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</BrowseInformation>
     </ClCompile>
+    <ClCompile Include="Mat4.cpp" />
     <ClCompile Include="MaterialDlg.cpp" />
     <ClCompile Include="PngWrapper.cpp" />
     <ClCompile Include="StdAfx.cpp">
@@ -216,6 +217,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <BrowseInformation Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</BrowseInformation>
     </ClCompile>
+    <ClCompile Include="Vec4.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="CGWork.rc" />
@@ -228,6 +230,7 @@
     <ClInclude Include="Light.h" />
     <ClInclude Include="LightDialog.h" />
     <ClInclude Include="MainFrm.h" />
+    <ClInclude Include="Mat4.h" />
     <ClInclude Include="MaterialDlg.h" />
     <ClInclude Include="PngWrapper.h" />
     <ClInclude Include="Resource.h" />
@@ -256,6 +259,7 @@
     <ClInclude Include="..\include\triv_lib.h" />
     <ClInclude Include="..\include\trng_lib.h" />
     <ClInclude Include="..\include\user_lib.h" />
+    <ClInclude Include="Vec4.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="res\CGWork.ico" />
