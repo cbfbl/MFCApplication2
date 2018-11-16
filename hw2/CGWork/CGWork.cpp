@@ -8,14 +8,6 @@
 #include "CGWorkDoc.h"
 #include "CGWorkView.h"
 
-
-#ifndef my_iob_func
-#define my_iob_func
-extern "C" {
-FILE __iob_func[3] = { *stdin, *stdout, *stderr };
-}
-#endif
-
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #undef THIS_FILE
