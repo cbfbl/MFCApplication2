@@ -13,8 +13,10 @@
 #include "gl\gl.h"    // Include the standard CGWork  headers
 #include "gl\glu.h"   // Add the utility library
 
+#include "Mat4.h"
 
 #include "Light.h"
+
 
 class CCGWorkView : public CView
 {
@@ -47,6 +49,22 @@ private:
 	LightParams m_lights[MAX_LIGHT];	//configurable lights array
 	LightParams m_ambientLight;		//ambient light (only RGB is used)
 
+    
+    Mat4 screen;
+    double thetaX;
+    double thetaY;
+    double thetaZ;
+    double scaleX;
+    double scaleY;
+    double scaleZ;
+    double translateX;
+    double translateY;
+    double translateZ;
+    double projection_d;
+
+    const double D_THETA = 0.1;
+    const double D_SCALE = 0.005;
+    const double D_TRANSLATE = 0.1;
 
 // Overrides
 	// ClassWizard generated virtual function overrides
@@ -115,6 +133,8 @@ protected:
 	DECLARE_MESSAGE_MAP()
 public:
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
+    afx_msg void OnKeyUp(UINT nChar, UINT nRepCnt, UINT nFlags);
+        afx_msg void OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags);
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp

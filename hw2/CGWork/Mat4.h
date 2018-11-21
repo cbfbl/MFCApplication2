@@ -17,7 +17,7 @@ public:
     Mat4 operator-(const double rhs) const;
 
     Mat4 operator*(const Mat4& rhs) const;
-    Vec4 operator*(const Vec4& rhs) const;
+    Vec4 operator*(const Vec4& rhs) const; /* rhs is a column vector */
     Mat4 operator*(const double rhs) const;
 
     BOOL operator==(const Mat4& rhs) const;

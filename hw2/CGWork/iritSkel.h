@@ -8,12 +8,17 @@
 #define	IRIT_SKEL_H
 
 #include <stdlib.h>
+#include <vector>
+using std::vector;
 #include "irit_sm.h"
 #include "iritprsr.h"
 #include "attribut.h"
 #include "allocate.h"
 #include "ip_cnvrt.h"
 #include "symb_lib.h"
+#include "Edge.h"
+
+extern vector<Edge> edges;
 
 bool CGSkelProcessIritDataFiles(CString &FileNames, int NumFiles);
 void CGSkelDumpOneTraversedObject(IPObjectStruct *PObj, IrtHmgnMatType Mat, void *Data);

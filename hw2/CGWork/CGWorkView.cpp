@@ -25,6 +25,8 @@ static char THIS_FILE[] = __FILE__;
 // For Status Bar access
 #include "MainFrm.h"
 
+#include "Mat4.h"
+
 // Use this macro to display text messages in the status bar.
 #define STATUS_BAR_TEXT(str) (((CMainFrame*)GetParentFrame())->getStatusBar().SetWindowText(str))
 
@@ -64,7 +66,9 @@ BEGIN_MESSAGE_MAP(CCGWorkView, CView)
 	ON_COMMAND(ID_LIGHT_CONSTANTS, OnLightConstants)
 	//}}AFX_MSG_MAP
 	ON_WM_TIMER()
-END_MESSAGE_MAP()
+        ON_WM_KEYUP()
+        ON_WM_KEYDOWN()
+        END_MESSAGE_MAP()
 
 
 // A patch to fix GLaux disappearance from VS2005 to VS2008
@@ -97,6 +101,16 @@ CCGWorkView::CCGWorkView()
 	m_lights[LIGHT_ID_1].enabled=true;
 	m_pDbBitMap = NULL;
 	m_pDbDC = NULL;
+
+    thetaX = 0;
+    thetaY = 0;
+    thetaZ = 0;
+    scaleX = 0.1;
+    scaleY = 0.1;
+    scaleZ = 0.1;
+    translateX = 0;
+    translateY = 0;
+    translateZ = 0;
 }
 
 CCGWorkView::~CCGWorkView()
@@ -202,6 +216,15 @@ void CCGWorkView::OnSize(UINT nType, int cx, int cy)
 	DeleteObject(m_pDbBitMap);
 	m_pDbBitMap = CreateCompatibleBitmap(m_pDC->m_hDC, r.right, r.bottom);	
 	m_pDbDC->SelectObject(m_pDbBitMap);
+
+    double half_w = r.Width() / 2;
+    double half_h = r.Height() / 2;
+    
+    screen = Mat4(
+        Vec4(half_h, 0, 0, half_w),
+        Vec4(0, -half_h, 0, half_h),
+        Vec4(0, 0, 1, 0),
+        Vec4(0, 0, 0, 1));
 }
 
 
@@ -239,7 +262,7 @@ BOOL CCGWorkView::OnEraseBkgnd(CDC* pDC)
 
 void CCGWorkView::OnDraw(CDC* pDC)
 {
-	static float theta = 0.0f;
+	//static float theta = 0.0f;
 	CCGWorkDoc* pDoc = GetDocument();
 	ASSERT_VALID(pDoc);
 	if (!pDoc)
@@ -250,7 +273,60 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	CDC *pDCToUse = /*m_pDC*/m_pDbDC;
 	
 	pDCToUse->FillSolidRect(&r, RGB(255, 255, 0));
-	
+
+    Mat4 rotateX = Mat4(
+        Vec4(1, 0, 0, 0),
+        Vec4(0, cos(thetaX), -sin(thetaX), 0),
+        Vec4(0, sin(thetaX), cos(thetaX), 0),
+        Vec4(0, 0, 0, 1));
+    Mat4 rotateY = Mat4(
+        Vec4(cos(thetaY), 0, sin(thetaY), 0),
+        Vec4(0, 1, 0, 0),
+        Vec4(-sin(thetaY), 0, cos(thetaY), 0),
+        Vec4(0, 0, 0, 1));
+    Mat4 rotateZ = Mat4(
+        Vec4(cos(thetaZ), -sin(thetaZ), 0, 0),
+        Vec4(sin(thetaZ), cos(thetaZ), 0, 0),
+        Vec4(0, 0, 1, 0),
+        Vec4(0, 0, 0, 1));
+    Mat4 scale = Mat4(
+        Vec4(scaleX, 0, 0, 0),
+        Vec4(0, scaleY, 0, 0),
+        Vec4(0, 0, scaleZ, 0),
+        Vec4(0, 0, 0, 1));
+    Mat4 translate = Mat4(
+        Vec4(1, 0, 0, translateX),
+        Vec4(0, 1, 0, translateY),
+        Vec4(0, 0, 1, translateZ),
+        Vec4(0, 0, 0, 1));
+
+    /*double d = 0.5;
+    Mat4 perspective = Mat4(
+        Vec4(1, 0, 0, 0),
+        Vec4(0, 1, 0 ,0),
+        Vec4(0, 0, 1, 1/d),
+        Vec4(0, 0, 0, 0));*/
+    
+    Mat4 t = screen * translate * scale * rotateZ * rotateY * rotateX;
+    for (Edge e : edges) {
+        Vec4 start = t * e.start;
+        //int xstart = (start.x + 1) * r.Width() / 2;
+        //int ystart = (start.y + 1) * r.Height() / 2;
+
+        Vec4 end = t * e.end;
+        //int xend = (end.x + 1) * r.Width() / 2;
+        //int yend = (end.y + 1) * r.Height() / 2;
+
+        //pDCToUse->MoveTo(start.x+half_w, start.y+half_h);
+        //pDCToUse->LineTo(end.x+half_w, end.y + half_h);
+        pDCToUse->MoveTo(start.x, start.y);
+        auto pen = pDCToUse->SelectStockObject(DC_PEN);
+        pDCToUse->SetDCPenColor(RGB(e.red, e.green, e.blue));
+        COLORREF vv = pDCToUse->GetDCPenColor();
+        pDCToUse->LineTo(end.x, end.y);
+    }
+    
+	/*
 	int numLines = 100;
 	float radius = r.right / 3;
 	
@@ -265,13 +341,13 @@ void CCGWorkView::OnDraw(CDC* pDC)
 		pDCToUse->MoveTo(r.right / 2, r.bottom / 2);
 		pDCToUse->LineTo(r.right / 2 + radius*cos(finalTheta), r.bottom / 2 + radius*sin(finalTheta));
 	}	
-
+    */
 	if (pDCToUse != m_pDC) 
 	{
 		m_pDC->BitBlt(r.left, r.top, r.Width(), r.Height(), pDCToUse, r.left, r.top, SRCCOPY);
 	}
 	
-	theta += 5;	
+	/*theta += 5;	*/
 }
 
 
@@ -313,6 +389,7 @@ void CCGWorkView::OnFileLoad()
 	if (dlg.DoModal () == IDOK) {
 		m_strItdFileName = dlg.GetPathName();		// Full path and filename
 		PngWrapper p;
+        edges.clear();
 		CGSkelProcessIritDataFiles(m_strItdFileName, 1);
 		// Open the file and read it.
 		// Your code here...
@@ -493,7 +570,127 @@ void CCGWorkView::OnLightConstants()
 void CCGWorkView::OnTimer(UINT_PTR nIDEvent)
 {
 	// TODO: Add your message handler code here and/or call default
-	CView::OnTimer(nIDEvent);
-	if (nIDEvent == 1)
-		Invalidate();
+	//CView::OnTimer(nIDEvent);
+	//if (nIDEvent == 1)
+		//Invalidate();
+}
+
+void CCGWorkView::OnKeyUp(UINT nChar, UINT nRepCnt, UINT nFlags)
+{
+    // TODO: Add your message handler code here and/or call default
+    CView::OnKeyUp(nChar, nRepCnt, nFlags);
+    
+    
+}
+
+void CCGWorkView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
+{
+    // TODO: Add your message handler code here and/or call default
+
+    CView::OnKeyDown(nChar, nRepCnt, nFlags);
+    switch (m_nAxis) {
+    case ID_AXIS_X:
+        switch (m_nAction) {
+        case ID_ACTION_ROTATE:
+            switch (nChar) {
+            case VK_LEFT:
+                thetaX -= nRepCnt * D_THETA;
+                break;
+            case VK_RIGHT:
+                thetaX += nRepCnt * D_THETA;
+                break;
+            }
+            break;
+        case ID_ACTION_SCALE:
+            switch (nChar) {
+            case VK_LEFT:
+                scaleX -= nRepCnt * D_SCALE;
+                break;
+            case VK_RIGHT:
+                scaleX += nRepCnt * D_SCALE;
+                break;
+            }
+            break;
+        case ID_ACTION_TRANSLATE:
+            switch (nChar) {
+            case VK_LEFT:
+                translateX -= nRepCnt * D_TRANSLATE;
+                break;
+            case VK_RIGHT:
+                translateX += nRepCnt * D_TRANSLATE;
+                break;
+            }
+            break;
+        }
+        break;
+    case ID_AXIS_Y:
+        switch (m_nAction) {
+        case ID_ACTION_ROTATE:
+            switch (nChar) {
+            case VK_LEFT:
+                thetaY -= nRepCnt * D_THETA;
+                break;
+            case VK_RIGHT:
+                thetaY += nRepCnt * D_THETA;
+                break;
+            }
+            break;
+        case ID_ACTION_SCALE:
+            switch (nChar) {
+            case VK_LEFT:
+                scaleY -= nRepCnt * D_SCALE;
+                break;
+            case VK_RIGHT:
+                scaleY += nRepCnt * D_SCALE;
+                break;
+            }
+            break;
+        case ID_ACTION_TRANSLATE:
+            switch (nChar) {
+            case VK_LEFT:
+                translateY -= nRepCnt * D_TRANSLATE;
+                break;
+            case VK_RIGHT:
+                translateY += nRepCnt * D_TRANSLATE;
+                break;
+            }
+            break;
+        }
+        break;
+    case ID_AXIS_Z:
+        switch (m_nAction) {
+        case ID_ACTION_ROTATE:
+            switch (nChar) {
+            case VK_LEFT:
+                thetaZ -= nRepCnt * D_THETA;
+                break;
+            case VK_RIGHT:
+                thetaZ += nRepCnt * D_THETA;
+                break;
+            }
+            break;
+        case ID_ACTION_SCALE:
+            switch (nChar) {
+            case VK_LEFT:
+                scaleZ -= nRepCnt * D_SCALE;
+                break;
+            case VK_RIGHT:
+                scaleZ += nRepCnt * D_SCALE;
+                break;
+            }
+            break;
+        case ID_ACTION_TRANSLATE:
+            switch (nChar) {
+            case VK_LEFT:
+                translateZ -= nRepCnt * D_TRANSLATE;
+                break;
+            case VK_RIGHT:
+                translateZ += nRepCnt * D_TRANSLATE;
+                break;
+            }
+            break;
+        }
+        break;
+    }
+    Invalidate();
 }

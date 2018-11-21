@@ -31,6 +31,8 @@ IPFreeformConvStateStruct CGSkelFFCState = {
 
 //CGSkelProcessIritDataFiles(argv + 1, argc - 1);
 
+vector<Edge> edges;
+
 
 /*****************************************************************************
 * DESCRIPTION:                                                               *
@@ -122,6 +124,7 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 	const IPAttributeStruct *Attrs =
         AttrTraceAttributes(PObj -> Attr, PObj -> Attr);
 
+
 	if (PObj -> ObjType != IP_OBJ_POLY) {
 		AfxMessageBox(_T("Non polygonal object detected and ignored"));
 		return true;
@@ -161,10 +164,54 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 				return false;
 			}
 
-			/* Count number of vertices. */
-			for (PVertex = PPolygon -> PVertex -> Pnext, i = 1;
-				PVertex != PPolygon -> PVertex && PVertex != NULL;
-				PVertex = PVertex -> Pnext, i++);
+            Vec4 start, end;
+            double vsize;
+			
+            PVertex = PPolygon->PVertex;
+            while (1) {
+                if (PVertex == NULL) break;
+
+                vsize = 1;
+                /*PVertex->Coord[0] * PVertex->Coord[0]
+                    + PVertex->Coord[1] * PVertex->Coord[1]
+                    + PVertex->Coord[2] * PVertex->Coord[2];*/
+                start = Vec4(
+                    PVertex->Coord[0] / vsize,
+                    PVertex->Coord[1] / vsize,
+                    PVertex->Coord[2] / vsize,
+                    1);
+
+                PVertex = PVertex->Pnext;
+                if (PVertex == NULL) {
+                    // We connect the last vertex with the first vertex in order to close the polygon.
+                    PVertex = PPolygon->PVertex; // The first vertex.
+                    vsize = 1;
+                    /*PVertex->Coord[0] * PVertex->Coord[0]
+                        + PVertex->Coord[1] * PVertex->Coord[1]
+                        + PVertex->Coord[2] * PVertex->Coord[2];*/
+                    end = Vec4(
+                        PVertex->Coord[0] / vsize,
+                        PVertex->Coord[1] / vsize,
+                        PVertex->Coord[2] / vsize,
+                        1);
+                    edges.push_back(Edge(start, end, RGB));
+                    break;
+                }
+
+                vsize = 1;
+                /*PVertex->Coord[0] * PVertex->Coord[0]
+                    + PVertex->Coord[1] * PVertex->Coord[1]
+                    + PVertex->Coord[2] * PVertex->Coord[2];*/
+                end = Vec4(
+                    PVertex->Coord[0] / vsize,
+                    PVertex->Coord[1] / vsize,
+                    PVertex->Coord[2] / vsize,
+                    1);
+
+                edges.push_back(Edge(start, end, RGB));
+            }
+
+            
 			/* use if(IP_HAS_PLANE_POLY(PPolygon)) to know whether a normal is defined for the polygon
 			   access the normal by the first 3 components of PPolygon->Plane */
 			PVertex = PPolygon -> PVertex;
@@ -172,7 +219,7 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 				/* code handeling all vertex/normal/texture coords */
 				if(IP_HAS_NORMAL_VRTX(PVertex)) 
 				{
-				    int x;
+				    int x = 0;
 				    ++x;
 				}
 
