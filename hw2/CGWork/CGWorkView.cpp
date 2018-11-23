@@ -1,7 +1,7 @@
 // CGWorkView.cpp : implementation of the CCGWorkView class
 //
-#include "stdafx.h"
 #include "CGWork.h"
+#include "stdafx.h"
 
 #include "CGWorkDoc.h"
 #include "CGWorkView.h"
@@ -9,8 +9,9 @@
 #include <iostream>
 using std::cout;
 using std::endl;
-#include "MaterialDlg.h"
 #include "LightDialog.h"
+#include "MaterialDlg.h"
+#include "MouseSensitivityDialog.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -21,7 +22,6 @@ static char THIS_FILE[] = __FILE__;
 #include "PngWrapper.h"
 #include "iritSkel.h"
 
-
 // For Status Bar access
 #include "MainFrm.h"
 
@@ -30,53 +30,56 @@ static char THIS_FILE[] = __FILE__;
 // Use this macro to display text messages in the status bar.
 #define STATUS_BAR_TEXT(str) (((CMainFrame*)GetParentFrame())->getStatusBar().SetWindowText(str))
 
-
 /////////////////////////////////////////////////////////////////////////////
 // CCGWorkView
 
 IMPLEMENT_DYNCREATE(CCGWorkView, CView)
 
 BEGIN_MESSAGE_MAP(CCGWorkView, CView)
-	//{{AFX_MSG_MAP(CCGWorkView)
-	ON_WM_ERASEBKGND()
-	ON_WM_CREATE()
-	ON_WM_DESTROY()
-	ON_WM_SIZE()
-	ON_COMMAND(ID_FILE_LOAD, OnFileLoad)
-	ON_COMMAND(ID_VIEW_ORTHOGRAPHIC, OnViewOrthographic)
-	ON_UPDATE_COMMAND_UI(ID_VIEW_ORTHOGRAPHIC, OnUpdateViewOrthographic)
-	ON_COMMAND(ID_VIEW_PERSPECTIVE, OnViewPerspective)
-	ON_UPDATE_COMMAND_UI(ID_VIEW_PERSPECTIVE, OnUpdateViewPerspective)
-	ON_COMMAND(ID_ACTION_ROTATE, OnActionRotate)
-	ON_UPDATE_COMMAND_UI(ID_ACTION_ROTATE, OnUpdateActionRotate)
-	ON_COMMAND(ID_ACTION_SCALE, OnActionScale)
-	ON_UPDATE_COMMAND_UI(ID_ACTION_SCALE, OnUpdateActionScale)
-	ON_COMMAND(ID_ACTION_TRANSLATE, OnActionTranslate)
-	ON_UPDATE_COMMAND_UI(ID_ACTION_TRANSLATE, OnUpdateActionTranslate)
-	ON_COMMAND(ID_AXIS_X, OnAxisX)
-	ON_UPDATE_COMMAND_UI(ID_AXIS_X, OnUpdateAxisX)
-	ON_COMMAND(ID_AXIS_Y, OnAxisY)
-	ON_UPDATE_COMMAND_UI(ID_AXIS_Y, OnUpdateAxisY)
-	ON_COMMAND(ID_AXIS_Z, OnAxisZ)
-	ON_UPDATE_COMMAND_UI(ID_AXIS_Z, OnUpdateAxisZ)
-	ON_COMMAND(ID_LIGHT_SHADING_FLAT, OnLightShadingFlat)
-	ON_UPDATE_COMMAND_UI(ID_LIGHT_SHADING_FLAT, OnUpdateLightShadingFlat)
-	ON_COMMAND(ID_LIGHT_SHADING_GOURAUD, OnLightShadingGouraud)
-	ON_UPDATE_COMMAND_UI(ID_LIGHT_SHADING_GOURAUD, OnUpdateLightShadingGouraud)
-	ON_COMMAND(ID_LIGHT_CONSTANTS, OnLightConstants)
-	//}}AFX_MSG_MAP
-	ON_WM_TIMER()
-        ON_WM_KEYUP()
-        ON_WM_KEYDOWN()
-        END_MESSAGE_MAP()
-
+//{{AFX_MSG_MAP(CCGWorkView)
+ON_WM_ERASEBKGND()
+ON_WM_CREATE()
+ON_WM_DESTROY()
+ON_WM_SIZE()
+ON_COMMAND(ID_FILE_LOAD, OnFileLoad)
+ON_COMMAND(ID_VIEW_ORTHOGRAPHIC, OnViewOrthographic)
+ON_UPDATE_COMMAND_UI(ID_VIEW_ORTHOGRAPHIC, OnUpdateViewOrthographic)
+ON_COMMAND(ID_VIEW_PERSPECTIVE, OnViewPerspective)
+ON_UPDATE_COMMAND_UI(ID_VIEW_PERSPECTIVE, OnUpdateViewPerspective)
+ON_COMMAND(ID_ACTION_ROTATE, OnActionRotate)
+ON_UPDATE_COMMAND_UI(ID_ACTION_ROTATE, OnUpdateActionRotate)
+ON_COMMAND(ID_ACTION_SCALE, OnActionScale)
+ON_UPDATE_COMMAND_UI(ID_ACTION_SCALE, OnUpdateActionScale)
+ON_COMMAND(ID_ACTION_TRANSLATE, OnActionTranslate)
+ON_UPDATE_COMMAND_UI(ID_ACTION_TRANSLATE, OnUpdateActionTranslate)
+ON_COMMAND(ID_AXIS_X, OnAxisX)
+ON_UPDATE_COMMAND_UI(ID_AXIS_X, OnUpdateAxisX)
+ON_COMMAND(ID_AXIS_Y, OnAxisY)
+ON_UPDATE_COMMAND_UI(ID_AXIS_Y, OnUpdateAxisY)
+ON_COMMAND(ID_AXIS_Z, OnAxisZ)
+ON_UPDATE_COMMAND_UI(ID_AXIS_Z, OnUpdateAxisZ)
+ON_COMMAND(ID_AXIS_XY, OnAxisXy)
+ON_UPDATE_COMMAND_UI(ID_AXIS_XY, OnUpdateAxisXy)
+ON_COMMAND(ID_LIGHT_SHADING_FLAT, OnLightShadingFlat)
+ON_UPDATE_COMMAND_UI(ID_LIGHT_SHADING_FLAT, OnUpdateLightShadingFlat)
+ON_COMMAND(ID_LIGHT_SHADING_GOURAUD, OnLightShadingGouraud)
+ON_UPDATE_COMMAND_UI(ID_LIGHT_SHADING_GOURAUD, OnUpdateLightShadingGouraud)
+ON_COMMAND(ID_LIGHT_CONSTANTS, OnLightConstants)
+//}}AFX_MSG_MAP
+ON_WM_TIMER()
+ON_WM_KEYUP()
+ON_WM_KEYDOWN()
+ON_WM_MOUSEMOVE()
+ON_COMMAND(ID_OPTIONS_MOUSESENSITIVITY, &CCGWorkView::OnOptionsMousesensitivity)
+END_MESSAGE_MAP()
 
 // A patch to fix GLaux disappearance from VS2005 to VS2008
-void auxSolidCone(GLdouble radius, GLdouble height) {
-        GLUquadric *quad = gluNewQuadric();
-        gluQuadricDrawStyle(quad, GLU_FILL);
-        gluCylinder(quad, radius, 0.0, height, 20, 20);
-        gluDeleteQuadric(quad);
+void auxSolidCone(GLdouble radius, GLdouble height)
+{
+    GLUquadric* quad = gluNewQuadric();
+    gluQuadricDrawStyle(quad, GLU_FILL);
+    gluCylinder(quad, radius, 0.0, height, 20, 20);
+    gluDeleteQuadric(quad);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -84,24 +87,26 @@ void auxSolidCone(GLdouble radius, GLdouble height) {
 
 CCGWorkView::CCGWorkView()
 {
-	// Set default values
-	m_nAxis = ID_AXIS_X;
-	m_nAction = ID_ACTION_ROTATE;
-	m_nView = ID_VIEW_ORTHOGRAPHIC;	
-	m_bIsPerspective = false;
+    // Set default values
+    m_nAxis = ID_AXIS_X;
+    m_nAction = ID_ACTION_ROTATE;
+    m_nView = ID_VIEW_ORTHOGRAPHIC;
+    m_bIsPerspective = false;
 
-	m_nLightShading = ID_LIGHT_SHADING_FLAT;
+    m_nLightShading = ID_LIGHT_SHADING_FLAT;
 
-	m_lMaterialAmbient = 0.2;
-	m_lMaterialDiffuse = 0.8;
-	m_lMaterialSpecular = 1.0;
-	m_nMaterialCosineFactor = 32;
+    m_lMaterialAmbient = 0.2;
+    m_lMaterialDiffuse = 0.8;
+    m_lMaterialSpecular = 1.0;
+    m_nMaterialCosineFactor = 32;
 
-	//init the first light to be enabled
-	m_lights[LIGHT_ID_1].enabled=true;
-	m_pDbBitMap = NULL;
-	m_pDbDC = NULL;
+    //init the first light to be enabled
+    m_lights[LIGHT_ID_1].enabled = true;
+    m_pDbBitMap = NULL;
+    m_pDbDC = NULL;
 
+    mouseSensitivity = 1;
+    lastCursorLocation = CPoint();
     thetaX = 0;
     thetaY = 0;
     thetaZ = 0;
@@ -117,109 +122,102 @@ CCGWorkView::~CCGWorkView()
 {
 }
 
-
 /////////////////////////////////////////////////////////////////////////////
 // CCGWorkView diagnostics
 
 #ifdef _DEBUG
 void CCGWorkView::AssertValid() const
 {
-	CView::AssertValid();
+    CView::AssertValid();
 }
 
 void CCGWorkView::Dump(CDumpContext& dc) const
 {
-	CView::Dump(dc);
+    CView::Dump(dc);
 }
 
 CCGWorkDoc* CCGWorkView::GetDocument() // non-debug version is inline
 {
-	ASSERT(m_pDocument->IsKindOf(RUNTIME_CLASS(CCGWorkDoc)));
-	return (CCGWorkDoc*)m_pDocument;
+    ASSERT(m_pDocument->IsKindOf(RUNTIME_CLASS(CCGWorkDoc)));
+    return (CCGWorkDoc*)m_pDocument;
 }
 #endif //_DEBUG
-
 
 /////////////////////////////////////////////////////////////////////////////
 // CCGWorkView Window Creation - Linkage of windows to CGWork
 
 BOOL CCGWorkView::PreCreateWindow(CREATESTRUCT& cs)
 {
-	// TODO: Modify the Window class or styles here by modifying
-	//  the CREATESTRUCT cs
+    // TODO: Modify the Window class or styles here by modifying
+    //  the CREATESTRUCT cs
 
-	// An CGWork window must be created with the following
-	// flags and must NOT include CS_PARENTDC for the
-	// class style.
+    // An CGWork window must be created with the following
+    // flags and must NOT include CS_PARENTDC for the
+    // class style.
 
-	cs.style |= WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
+    cs.style |= WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
 
-	return CView::PreCreateWindow(cs);
+    return CView::PreCreateWindow(cs);
 }
 
-
-
-int CCGWorkView::OnCreate(LPCREATESTRUCT lpCreateStruct) 
+int CCGWorkView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 {
-	if (CView::OnCreate(lpCreateStruct) == -1)
-		return -1;
+    if (CView::OnCreate(lpCreateStruct) == -1)
+        return -1;
 
-	InitializeCGWork();
+    InitializeCGWork();
 
-	return 0;
+    return 0;
 }
-
 
 // This method initialized the CGWork system.
 BOOL CCGWorkView::InitializeCGWork()
 {
-	m_pDC = new CClientDC(this);
-	
-	if ( NULL == m_pDC ) { // failure to get DC
-		::AfxMessageBox(CString("Couldn't get a valid DC."));
-		return FALSE;
-	}
+    m_pDC = new CClientDC(this);
 
-	CRect r;
-	GetClientRect(&r);
-	m_pDbDC = new CDC();
-	m_pDbDC->CreateCompatibleDC(m_pDC);
-	SetTimer(1, 1, NULL);
-	m_pDbBitMap = CreateCompatibleBitmap(m_pDC->m_hDC, r.right, r.bottom);	
-	m_pDbDC->SelectObject(m_pDbBitMap);
-	return TRUE;
+    if (NULL == m_pDC) { // failure to get DC
+        ::AfxMessageBox(CString("Couldn't get a valid DC."));
+        return FALSE;
+    }
+
+    CRect r;
+    GetClientRect(&r);
+    m_pDbDC = new CDC();
+    m_pDbDC->CreateCompatibleDC(m_pDC);
+    SetTimer(1, 1, NULL);
+    m_pDbBitMap = CreateCompatibleBitmap(m_pDC->m_hDC, r.right, r.bottom);
+    m_pDbDC->SelectObject(m_pDbBitMap);
+    return TRUE;
 }
-
 
 /////////////////////////////////////////////////////////////////////////////
 // CCGWorkView message handlers
 
-
-void CCGWorkView::OnSize(UINT nType, int cx, int cy) 
+void CCGWorkView::OnSize(UINT nType, int cx, int cy)
 {
-	CView::OnSize(nType, cx, cy);
+    CView::OnSize(nType, cx, cy);
 
-	if ( 0 >= cx || 0 >= cy ) {
-		return;
-	}
+    if (0 >= cx || 0 >= cy) {
+        return;
+    }
 
-	// save the width and height of the current window
-	m_WindowWidth = cx;
-	m_WindowHeight = cy;
+    // save the width and height of the current window
+    m_WindowWidth = cx;
+    m_WindowHeight = cy;
 
-	// compute the aspect ratio
-	// this will keep all dimension scales equal
-	m_AspectRatio = (GLdouble)m_WindowWidth/(GLdouble)m_WindowHeight;
+    // compute the aspect ratio
+    // this will keep all dimension scales equal
+    m_AspectRatio = (GLdouble)m_WindowWidth / (GLdouble)m_WindowHeight;
 
-	CRect r;
-	GetClientRect(&r);
-	DeleteObject(m_pDbBitMap);
-	m_pDbBitMap = CreateCompatibleBitmap(m_pDC->m_hDC, r.right, r.bottom);	
-	m_pDbDC->SelectObject(m_pDbBitMap);
+    CRect r;
+    GetClientRect(&r);
+    DeleteObject(m_pDbBitMap);
+    m_pDbBitMap = CreateCompatibleBitmap(m_pDC->m_hDC, r.right, r.bottom);
+    m_pDbDC->SelectObject(m_pDbBitMap);
 
     double half_w = r.Width() / 2;
     double half_h = r.Height() / 2;
-    
+
     screen = Mat4(
         Vec4(half_h, 0, 0, half_w),
         Vec4(0, -half_h, 0, half_h),
@@ -227,34 +225,25 @@ void CCGWorkView::OnSize(UINT nType, int cx, int cy)
         Vec4(0, 0, 0, 1));
 }
 
-
 BOOL CCGWorkView::SetupViewingFrustum(void)
 {
     return TRUE;
 }
 
-
 // This viewing projection gives us a constant aspect ration. This is done by
 // increasing the corresponding size of the ortho cube.
 BOOL CCGWorkView::SetupViewingOrthoConstAspect(void)
 {
-	return TRUE;
+    return TRUE;
 }
 
-
-
-
-
-BOOL CCGWorkView::OnEraseBkgnd(CDC* pDC) 
+BOOL CCGWorkView::OnEraseBkgnd(CDC* pDC)
 {
-	// Windows will clear the window with the background color every time your window 
-	// is redrawn, and then CGWork will clear the viewport with its own background color.
+    // Windows will clear the window with the background color every time your window
+    // is redrawn, and then CGWork will clear the viewport with its own background color.
 
-	
-	return true;
+    return true;
 }
-
-
 
 /////////////////////////////////////////////////////////////////////////////
 // CCGWorkView drawing
@@ -262,17 +251,17 @@ BOOL CCGWorkView::OnEraseBkgnd(CDC* pDC)
 
 void CCGWorkView::OnDraw(CDC* pDC)
 {
-	//static float theta = 0.0f;
-	CCGWorkDoc* pDoc = GetDocument();
-	ASSERT_VALID(pDoc);
-	if (!pDoc)
-	    return;
-	CRect r;
+    //static float theta = 0.0f;
+    CCGWorkDoc* pDoc = GetDocument();
+    ASSERT_VALID(pDoc);
+    if (!pDoc)
+        return;
+    CRect r;
 
-	GetClientRect(&r);
-	CDC *pDCToUse = /*m_pDC*/m_pDbDC;
-	
-	pDCToUse->FillSolidRect(&r, RGB(255, 255, 0));
+    GetClientRect(&r);
+    CDC* pDCToUse = /*m_pDC*/ m_pDbDC;
+
+    pDCToUse->FillSolidRect(&r, RGB(255, 255, 0));
 
     Mat4 rotateX = Mat4(
         Vec4(1, 0, 0, 0),
@@ -306,7 +295,7 @@ void CCGWorkView::OnDraw(CDC* pDC)
         Vec4(0, 1, 0 ,0),
         Vec4(0, 0, 1, 1/d),
         Vec4(0, 0, 0, 0));*/
-    
+
     Mat4 t = screen * translate * scale * rotateZ * rotateY * rotateX;
     for (Edge e : edges) {
         Vec4 start = t * e.start;
@@ -325,8 +314,8 @@ void CCGWorkView::OnDraw(CDC* pDC)
         COLORREF vv = pDCToUse->GetDCPenColor();
         pDCToUse->LineTo(end.x, end.y);
     }
-    
-	/*
+
+    /*
 	int numLines = 100;
 	float radius = r.right / 3;
 	
@@ -342,245 +331,227 @@ void CCGWorkView::OnDraw(CDC* pDC)
 		pDCToUse->LineTo(r.right / 2 + radius*cos(finalTheta), r.bottom / 2 + radius*sin(finalTheta));
 	}	
     */
-	if (pDCToUse != m_pDC) 
-	{
-		m_pDC->BitBlt(r.left, r.top, r.Width(), r.Height(), pDCToUse, r.left, r.top, SRCCOPY);
-	}
-	
-	/*theta += 5;	*/
-}
+    if (pDCToUse != m_pDC) {
+        m_pDC->BitBlt(r.left, r.top, r.Width(), r.Height(), pDCToUse, r.left, r.top, SRCCOPY);
+    }
 
+    /*theta += 5;	*/
+}
 
 /////////////////////////////////////////////////////////////////////////////
 // CCGWorkView CGWork Finishing and clearing...
 
-void CCGWorkView::OnDestroy() 
+void CCGWorkView::OnDestroy()
 {
-	CView::OnDestroy();
+    CView::OnDestroy();
 
-	// delete the DC
-	if ( m_pDC ) {
-		delete m_pDC;
-	}
+    // delete the DC
+    if (m_pDC) {
+        delete m_pDC;
+    }
 
-	if (m_pDbDC) {
-		delete m_pDbDC;
-	}
+    if (m_pDbDC) {
+        delete m_pDbDC;
+    }
 }
-
-
 
 /////////////////////////////////////////////////////////////////////////////
 // User Defined Functions
 
-void CCGWorkView::RenderScene() {
-	// do nothing. This is supposed to be overriden...
-
-	return;
-}
-
-
-void CCGWorkView::OnFileLoad() 
+void CCGWorkView::RenderScene()
 {
-	TCHAR szFilters[] = _T ("IRIT Data Files (*.itd)|*.itd|All Files (*.*)|*.*||");
+    // do nothing. This is supposed to be overriden...
 
-	CFileDialog dlg(TRUE, _T("itd"), _T("*.itd"), OFN_FILEMUSTEXIST | OFN_HIDEREADONLY ,szFilters);
-
-	if (dlg.DoModal () == IDOK) {
-		m_strItdFileName = dlg.GetPathName();		// Full path and filename
-		PngWrapper p;
-        edges.clear();
-		CGSkelProcessIritDataFiles(m_strItdFileName, 1);
-		// Open the file and read it.
-		// Your code here...
-
-		Invalidate();	// force a WM_PAINT for drawing.
-	} 
-
+    return;
 }
 
+void CCGWorkView::OnFileLoad()
+{
+    TCHAR szFilters[] = _T ("IRIT Data Files (*.itd)|*.itd|All Files (*.*)|*.*||");
 
+    CFileDialog dlg(TRUE, _T("itd"), _T("*.itd"), OFN_FILEMUSTEXIST | OFN_HIDEREADONLY, szFilters);
 
+    if (dlg.DoModal() == IDOK) {
+        m_strItdFileName = dlg.GetPathName(); // Full path and filename
+        PngWrapper p;
+        edges.clear();
+        CGSkelProcessIritDataFiles(m_strItdFileName, 1);
+        // Open the file and read it.
+        // Your code here...
 
+        Invalidate(); // force a WM_PAINT for drawing.
+    }
+}
 
 // VIEW HANDLERS ///////////////////////////////////////////
 
 // Note: that all the following Message Handlers act in a similar way.
 // Each control or command has two functions associated with it.
 
-void CCGWorkView::OnViewOrthographic() 
+void CCGWorkView::OnViewOrthographic()
 {
-	m_nView = ID_VIEW_ORTHOGRAPHIC;
-	m_bIsPerspective = false;
-	Invalidate();		// redraw using the new view.
+    m_nView = ID_VIEW_ORTHOGRAPHIC;
+    m_bIsPerspective = false;
+    Invalidate(); // redraw using the new view.
 }
 
-void CCGWorkView::OnUpdateViewOrthographic(CCmdUI* pCmdUI) 
+void CCGWorkView::OnUpdateViewOrthographic(CCmdUI* pCmdUI)
 {
-	pCmdUI->SetCheck(m_nView == ID_VIEW_ORTHOGRAPHIC);
+    pCmdUI->SetCheck(m_nView == ID_VIEW_ORTHOGRAPHIC);
 }
 
-void CCGWorkView::OnViewPerspective() 
+void CCGWorkView::OnViewPerspective()
 {
-	m_nView = ID_VIEW_PERSPECTIVE;
-	m_bIsPerspective = true;
-	Invalidate();
+    m_nView = ID_VIEW_PERSPECTIVE;
+    m_bIsPerspective = true;
+    Invalidate();
 }
 
-void CCGWorkView::OnUpdateViewPerspective(CCmdUI* pCmdUI) 
+void CCGWorkView::OnUpdateViewPerspective(CCmdUI* pCmdUI)
 {
-	pCmdUI->SetCheck(m_nView == ID_VIEW_PERSPECTIVE);
+    pCmdUI->SetCheck(m_nView == ID_VIEW_PERSPECTIVE);
 }
-
-
-
 
 // ACTION HANDLERS ///////////////////////////////////////////
 
-void CCGWorkView::OnActionRotate() 
+void CCGWorkView::OnActionRotate()
 {
-	m_nAction = ID_ACTION_ROTATE;
+    m_nAction = ID_ACTION_ROTATE;
 }
 
-void CCGWorkView::OnUpdateActionRotate(CCmdUI* pCmdUI) 
+void CCGWorkView::OnUpdateActionRotate(CCmdUI* pCmdUI)
 {
-	pCmdUI->SetCheck(m_nAction == ID_ACTION_ROTATE);
+    pCmdUI->SetCheck(m_nAction == ID_ACTION_ROTATE);
 }
 
-void CCGWorkView::OnActionTranslate() 
+void CCGWorkView::OnActionTranslate()
 {
-	m_nAction = ID_ACTION_TRANSLATE;
+    m_nAction = ID_ACTION_TRANSLATE;
 }
 
-void CCGWorkView::OnUpdateActionTranslate(CCmdUI* pCmdUI) 
+void CCGWorkView::OnUpdateActionTranslate(CCmdUI* pCmdUI)
 {
-	pCmdUI->SetCheck(m_nAction == ID_ACTION_TRANSLATE);
+    pCmdUI->SetCheck(m_nAction == ID_ACTION_TRANSLATE);
 }
 
-void CCGWorkView::OnActionScale() 
+void CCGWorkView::OnActionScale()
 {
-	m_nAction = ID_ACTION_SCALE;
+    m_nAction = ID_ACTION_SCALE;
 }
 
-void CCGWorkView::OnUpdateActionScale(CCmdUI* pCmdUI) 
+void CCGWorkView::OnUpdateActionScale(CCmdUI* pCmdUI)
 {
-	pCmdUI->SetCheck(m_nAction == ID_ACTION_SCALE);
+    pCmdUI->SetCheck(m_nAction == ID_ACTION_SCALE);
 }
-
-
-
 
 // AXIS HANDLERS ///////////////////////////////////////////
 
-
 // Gets calles when the X button is pressed or when the Axis->X menu is selected.
-// The only thing we do here is set the ChildView member variable m_nAxis to the 
+// The only thing we do here is set the ChildView member variable m_nAxis to the
 // selected axis.
-void CCGWorkView::OnAxisX() 
+void CCGWorkView::OnAxisX()
 {
-	m_nAxis = ID_AXIS_X;
+    m_nAxis = ID_AXIS_X;
 }
 
 // Gets called when windows has to repaint either the X button or the Axis pop up menu.
 // The control is responsible for its redrawing.
 // It sets itself disabled when the action is a Scale action.
 // It sets itself Checked if the current axis is the X axis.
-void CCGWorkView::OnUpdateAxisX(CCmdUI* pCmdUI) 
+void CCGWorkView::OnUpdateAxisX(CCmdUI* pCmdUI)
 {
-	pCmdUI->SetCheck(m_nAxis == ID_AXIS_X);
+    pCmdUI->SetCheck(m_nAxis == ID_AXIS_X);
+}
+
+void CCGWorkView::OnAxisY()
+{
+    m_nAxis = ID_AXIS_Y;
+}
+
+void CCGWorkView::OnUpdateAxisY(CCmdUI* pCmdUI)
+{
+    pCmdUI->SetCheck(m_nAxis == ID_AXIS_Y);
+}
+
+void CCGWorkView::OnAxisZ()
+{
+    m_nAxis = ID_AXIS_Z;
+}
+
+void CCGWorkView::OnUpdateAxisZ(CCmdUI* pCmdUI)
+{
+    pCmdUI->SetCheck(m_nAxis == ID_AXIS_Z);
 }
 
 
-void CCGWorkView::OnAxisY() 
+void CCGWorkView::OnAxisXy()
 {
-	m_nAxis = ID_AXIS_Y;
+    m_nAxis = ID_AXIS_XY;
 }
 
-void CCGWorkView::OnUpdateAxisY(CCmdUI* pCmdUI) 
+void CCGWorkView::OnUpdateAxisXy(CCmdUI* pCmdUI)
 {
-	pCmdUI->SetCheck(m_nAxis == ID_AXIS_Y);
+    pCmdUI->SetCheck(m_nAxis == ID_AXIS_XY);
 }
-
-
-void CCGWorkView::OnAxisZ() 
-{
-	m_nAxis = ID_AXIS_Z;
-}
-
-void CCGWorkView::OnUpdateAxisZ(CCmdUI* pCmdUI) 
-{
-	pCmdUI->SetCheck(m_nAxis == ID_AXIS_Z);
-}
-
-
 
 
 
 // OPTIONS HANDLERS ///////////////////////////////////////////
 
-
-
-
 // LIGHT SHADING HANDLERS ///////////////////////////////////////////
 
-void CCGWorkView::OnLightShadingFlat() 
+void CCGWorkView::OnLightShadingFlat()
 {
-	m_nLightShading = ID_LIGHT_SHADING_FLAT;
+    m_nLightShading = ID_LIGHT_SHADING_FLAT;
 }
 
-void CCGWorkView::OnUpdateLightShadingFlat(CCmdUI* pCmdUI) 
+void CCGWorkView::OnUpdateLightShadingFlat(CCmdUI* pCmdUI)
 {
-	pCmdUI->SetCheck(m_nLightShading == ID_LIGHT_SHADING_FLAT);
+    pCmdUI->SetCheck(m_nLightShading == ID_LIGHT_SHADING_FLAT);
 }
 
-
-void CCGWorkView::OnLightShadingGouraud() 
+void CCGWorkView::OnLightShadingGouraud()
 {
-	m_nLightShading = ID_LIGHT_SHADING_GOURAUD;
+    m_nLightShading = ID_LIGHT_SHADING_GOURAUD;
 }
 
-void CCGWorkView::OnUpdateLightShadingGouraud(CCmdUI* pCmdUI) 
+void CCGWorkView::OnUpdateLightShadingGouraud(CCmdUI* pCmdUI)
 {
-	pCmdUI->SetCheck(m_nLightShading == ID_LIGHT_SHADING_GOURAUD);
+    pCmdUI->SetCheck(m_nLightShading == ID_LIGHT_SHADING_GOURAUD);
 }
 
 // LIGHT SETUP HANDLER ///////////////////////////////////////////
 
-void CCGWorkView::OnLightConstants() 
+void CCGWorkView::OnLightConstants()
 {
-	CLightDialog dlg;
+    CLightDialog dlg;
 
-	for (int id=LIGHT_ID_1;id<MAX_LIGHT;id++)
-	{	    
-	    dlg.SetDialogData((LightID)id,m_lights[id]);
-	}
-	dlg.SetDialogData(LIGHT_ID_AMBIENT,m_ambientLight);
+    for (int id = LIGHT_ID_1; id < MAX_LIGHT; id++) {
+        dlg.SetDialogData((LightID)id, m_lights[id]);
+    }
+    dlg.SetDialogData(LIGHT_ID_AMBIENT, m_ambientLight);
 
-	if (dlg.DoModal() == IDOK) 
-	{
-	    for (int id=LIGHT_ID_1;id<MAX_LIGHT;id++)
-	    {
-		m_lights[id] = dlg.GetDialogData((LightID)id);
-	    }
-	    m_ambientLight = dlg.GetDialogData(LIGHT_ID_AMBIENT);
-	}	
-	Invalidate();
+    if (dlg.DoModal() == IDOK) {
+        for (int id = LIGHT_ID_1; id < MAX_LIGHT; id++) {
+            m_lights[id] = dlg.GetDialogData((LightID)id);
+        }
+        m_ambientLight = dlg.GetDialogData(LIGHT_ID_AMBIENT);
+    }
+    Invalidate();
 }
 
 void CCGWorkView::OnTimer(UINT_PTR nIDEvent)
 {
-	// TODO: Add your message handler code here and/or call default
-	//CView::OnTimer(nIDEvent);
-	//if (nIDEvent == 1)
-		//Invalidate();
+    // TODO: Add your message handler code here and/or call default
+    //CView::OnTimer(nIDEvent);
+    //if (nIDEvent == 1)
+    //Invalidate();
 }
 
 void CCGWorkView::OnKeyUp(UINT nChar, UINT nRepCnt, UINT nFlags)
 {
     // TODO: Add your message handler code here and/or call default
     CView::OnKeyUp(nChar, nRepCnt, nFlags);
-    
-    
 }
 
 void CCGWorkView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
@@ -588,109 +559,89 @@ void CCGWorkView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
     // TODO: Add your message handler code here and/or call default
 
     CView::OnKeyDown(nChar, nRepCnt, nFlags);
+}
+
+void CCGWorkView::OnMouseMove(UINT nFlags, CPoint point)
+{
+    CView::OnMouseMove(nFlags, point);
+
+    if (nFlags & MK_LBUTTON) {
+        CPoint diff = point - lastCursorLocation;
+        TRACE("%d, %d\n", diff.x, diff.y);
+        Transform(diff);
+    }
+    lastCursorLocation.SetPoint(point.x, point.y);
+}
+
+void CCGWorkView::Transform(CPoint diff)
+{
+    double dx = double(diff.x * mouseSensitivity) / 1000;
+    double dy = double(-diff.y * mouseSensitivity) / 1000;
     switch (m_nAxis) {
     case ID_AXIS_X:
         switch (m_nAction) {
         case ID_ACTION_ROTATE:
-            switch (nChar) {
-            case VK_LEFT:
-                thetaX -= nRepCnt * D_THETA;
-                break;
-            case VK_RIGHT:
-                thetaX += nRepCnt * D_THETA;
-                break;
-            }
+            thetaX += dx;
             break;
         case ID_ACTION_SCALE:
-            switch (nChar) {
-            case VK_LEFT:
-                scaleX -= nRepCnt * D_SCALE;
-                break;
-            case VK_RIGHT:
-                scaleX += nRepCnt * D_SCALE;
-                break;
-            }
+            scaleX = max(0.1, scaleX + dx);
             break;
         case ID_ACTION_TRANSLATE:
-            switch (nChar) {
-            case VK_LEFT:
-                translateX -= nRepCnt * D_TRANSLATE;
-                break;
-            case VK_RIGHT:
-                translateX += nRepCnt * D_TRANSLATE;
-                break;
-            }
+            translateX += dx;
             break;
         }
         break;
     case ID_AXIS_Y:
         switch (m_nAction) {
         case ID_ACTION_ROTATE:
-            switch (nChar) {
-            case VK_LEFT:
-                thetaY -= nRepCnt * D_THETA;
-                break;
-            case VK_RIGHT:
-                thetaY += nRepCnt * D_THETA;
-                break;
-            }
+            thetaY += dx;
             break;
         case ID_ACTION_SCALE:
-            switch (nChar) {
-            case VK_LEFT:
-                scaleY -= nRepCnt * D_SCALE;
-                break;
-            case VK_RIGHT:
-                scaleY += nRepCnt * D_SCALE;
-                break;
-            }
+            scaleY = max(0.1, scaleY + dx);
             break;
         case ID_ACTION_TRANSLATE:
-            switch (nChar) {
-            case VK_LEFT:
-                translateY -= nRepCnt * D_TRANSLATE;
-                break;
-            case VK_RIGHT:
-                translateY += nRepCnt * D_TRANSLATE;
-                break;
-            }
+            translateY += dx;
             break;
         }
         break;
     case ID_AXIS_Z:
         switch (m_nAction) {
         case ID_ACTION_ROTATE:
-            switch (nChar) {
-            case VK_LEFT:
-                thetaZ -= nRepCnt * D_THETA;
-                break;
-            case VK_RIGHT:
-                thetaZ += nRepCnt * D_THETA;
-                break;
-            }
+            thetaZ += dx;
             break;
         case ID_ACTION_SCALE:
-            switch (nChar) {
-            case VK_LEFT:
-                scaleZ -= nRepCnt * D_SCALE;
-                break;
-            case VK_RIGHT:
-                scaleZ += nRepCnt * D_SCALE;
-                break;
-            }
+            scaleZ = max(0.1, scaleZ + dx);
             break;
         case ID_ACTION_TRANSLATE:
-            switch (nChar) {
-            case VK_LEFT:
-                translateZ -= nRepCnt * D_TRANSLATE;
-                break;
-            case VK_RIGHT:
-                translateZ += nRepCnt * D_TRANSLATE;
-                break;
-            }
+            translateZ += dx;
+            break;
+        }
+        break;
+    case ID_AXIS_XY:
+        switch (m_nAction) {
+        case ID_ACTION_ROTATE:
+            thetaX += dx;
+            thetaY += dy;
+            break;
+        case ID_ACTION_SCALE:
+            scaleX = max(0.1, scaleX + dx);
+            scaleY = max(0.1, scaleY + dy);
+            break;
+        case ID_ACTION_TRANSLATE:
+            translateX += dx;
+            translateY += dy;
             break;
         }
         break;
     }
     Invalidate();
+}
+
+void CCGWorkView::OnOptionsMousesensitivity()
+{
+    MouseSensitivityDialog dlg;
+    dlg.setSensitivity(mouseSensitivity);
+    if (dlg.DoModal() == IDOK) {
+        mouseSensitivity = dlg.getSensitivity();
+    }
 }

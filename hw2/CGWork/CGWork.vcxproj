@@ -205,6 +205,7 @@
     </ClCompile>
     <ClCompile Include="Mat4.cpp" />
     <ClCompile Include="MaterialDlg.cpp" />
+    <ClCompile Include="MouseSensitivityDialog.cpp" />
     <ClCompile Include="PngWrapper.cpp" />
     <ClCompile Include="StdAfx.cpp">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Disabled</Optimization>
@@ -234,6 +235,7 @@
     <ClInclude Include="MainFrm.h" />
     <ClInclude Include="Mat4.h" />
     <ClInclude Include="MaterialDlg.h" />
+    <ClInclude Include="MouseSensitivityDialog.h" />
     <ClInclude Include="PngWrapper.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="StdAfx.h" />

@@ -32,7 +32,7 @@ public:
 public:
 
 private:
-	int m_nAxis;				// Axis of Action, X Y or Z
+	int m_nAxis;				// Axis of Action, X, Y, Z or XY
 	int m_nAction;				// Rotate, Translate, Scale
 	int m_nView;				// Orthographic, perspective
 	bool m_bIsPerspective;			// is the view perspective
@@ -49,7 +49,7 @@ private:
 	LightParams m_lights[MAX_LIGHT];	//configurable lights array
 	LightParams m_ambientLight;		//ambient light (only RGB is used)
 
-    
+    CPoint lastCursorLocation;
     Mat4 screen;
     double thetaX;
     double thetaY;
@@ -62,9 +62,9 @@ private:
     double translateZ;
     double projection_d;
 
-    const double D_THETA = 0.1;
-    const double D_SCALE = 0.005;
-    const double D_TRANSLATE = 0.1;
+    int mouseSensitivity;
+
+    void Transform(CPoint diff);
 
 // Overrides
 	// ClassWizard generated virtual function overrides
@@ -134,7 +134,11 @@ protected:
 public:
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
     afx_msg void OnKeyUp(UINT nChar, UINT nRepCnt, UINT nFlags);
-        afx_msg void OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags);
+    afx_msg void OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags);
+    afx_msg void OnMouseMove(UINT nFlags, CPoint point);
+    afx_msg void OnOptionsMousesensitivity();
+    afx_msg void OnAxisXy();
+    afx_msg void OnUpdateAxisXy(CCmdUI* pCmdUI);
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp

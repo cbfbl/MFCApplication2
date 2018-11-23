@@ -3,6 +3,7 @@
 // Used by CGWork.rc
 //
 #define IDD_ABOUTBOX                    100
+#define IDD_MouseSensitivityDialog      103
 #define IDR_MAINFRAME                   128
 #define IDR_CGWorkTYPE                  129
 #define IDD_LIGHTS_DLG                  134
@@ -34,6 +35,8 @@
 #define IDC_MATERIAL_DIFFUSE            1040
 #define IDC_MATERIAL_SHININESS          1041
 #define IDC_MATERIAL_SPECULAR           1042
+#define IDC_SLIDER1                     1043
+#define IDC_STATIC_MOUSE_SENSITIVITY    1044
 #define ID_FILE_LOAD                    32771
 #define ID_VIEW_ORTHOGRAPHIC            32772
 #define ID_VIEW_PERSPECTIVE             32773
@@ -52,14 +55,17 @@
 #define ID_BUTTON_SUBDIVIDE             32797
 #define ID_OPTIONS_PERSPECTIVECONTROL   32798
 #define ID_OPTIONS_MOUSESENSITIVITY     32799
+#define ID_AXIS_XY                      32801
+#define ID_AXIS_XY32802                 32802
+#define ID_BUTTON32804                  32804
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        139
-#define _APS_NEXT_COMMAND_VALUE         32801
-#define _APS_NEXT_CONTROL_VALUE         1040
-#define _APS_NEXT_SYMED_VALUE           101
+#define _APS_NEXT_RESOURCE_VALUE        142
+#define _APS_NEXT_COMMAND_VALUE         32805
+#define _APS_NEXT_CONTROL_VALUE         1045
+#define _APS_NEXT_SYMED_VALUE           104
 #endif
 #endif

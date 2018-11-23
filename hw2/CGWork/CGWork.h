@@ -6,6 +6,7 @@
 
 #if _MSC_VER > 1000
 #pragma once
+#include "stdafx.h"
 #endif // _MSC_VER > 1000
 
 #ifndef __AFXWIN_H__
