@@ -31,7 +31,7 @@ IPFreeformConvStateStruct CGSkelFFCState = {
 
 //CGSkelProcessIritDataFiles(argv + 1, argc - 1);
 
-vector<Edge> edges;
+vector<GraphicObject> graphicObjects;
 
 
 /*****************************************************************************
@@ -157,6 +157,17 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 			Attrs = AttrTraceAttributes(Attrs, NULL);
 		}
 	}
+
+    double minX = DBL_MAX;
+    double minY = DBL_MAX;
+    double minZ = DBL_MAX;
+    double maxX = DBL_MIN;
+    double maxY = DBL_MIN;
+    double maxZ = DBL_MIN;
+    
+    
+
+    GraphicObject graphicObject(RGB);
 	for (PPolygon = PObj -> U.Pl; PPolygon != NULL;	PPolygon = PPolygon -> Pnext) 
 	{
 			if (PPolygon -> PVertex == NULL) {
@@ -172,9 +183,6 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
                 if (PVertex == NULL) break;
 
                 vsize = 1;
-                /*PVertex->Coord[0] * PVertex->Coord[0]
-                    + PVertex->Coord[1] * PVertex->Coord[1]
-                    + PVertex->Coord[2] * PVertex->Coord[2];*/
                 start = Vec4(
                     PVertex->Coord[0] / vsize,
                     PVertex->Coord[1] / vsize,
@@ -186,29 +194,43 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
                     // We connect the last vertex with the first vertex in order to close the polygon.
                     PVertex = PPolygon->PVertex; // The first vertex.
                     vsize = 1;
-                    /*PVertex->Coord[0] * PVertex->Coord[0]
-                        + PVertex->Coord[1] * PVertex->Coord[1]
-                        + PVertex->Coord[2] * PVertex->Coord[2];*/
                     end = Vec4(
                         PVertex->Coord[0] / vsize,
                         PVertex->Coord[1] / vsize,
                         PVertex->Coord[2] / vsize,
                         1);
-                    edges.push_back(Edge(start, end, RGB));
+                    graphicObject.edges.push_back(Edge(start, end));
                     break;
                 }
 
                 vsize = 1;
-                /*PVertex->Coord[0] * PVertex->Coord[0]
-                    + PVertex->Coord[1] * PVertex->Coord[1]
-                    + PVertex->Coord[2] * PVertex->Coord[2];*/
                 end = Vec4(
                     PVertex->Coord[0] / vsize,
                     PVertex->Coord[1] / vsize,
                     PVertex->Coord[2] / vsize,
                     1);
 
-                edges.push_back(Edge(start, end, RGB));
+                graphicObject.edges.push_back(Edge(start, end));
+
+                if (start.x > maxX) {
+                    maxX = start.x;
+                }
+                if (start.y > maxY) {
+                    maxY = start.y;
+                }
+                if (start.z > maxZ) {
+                    maxZ = start.z;
+                }
+
+                if (start.x < minX) {
+                    minX = start.x;
+                }
+                if (start.y < minY) {
+                    minY = start.y;
+                }
+                if (start.z < minZ) {
+                    minZ = start.z;
+                }
             }
 
             
@@ -229,6 +251,25 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 			while (PVertex != PPolygon -> PVertex && PVertex != NULL);
 			/* Close the polygon. */
 	}
+
+    // Calculate bounding box edges:
+    graphicObject.boundingBox.push_back(Edge(Vec4(minX, minY, minZ, 1), Vec4(maxX, minY, minZ, 1)));
+    graphicObject.boundingBox.push_back(Edge(Vec4(minX, minY, minZ, 1), Vec4(minX, maxY, minZ, 1)));
+    graphicObject.boundingBox.push_back(Edge(Vec4(maxX, minY, minZ, 1), Vec4(maxX, maxY, minZ, 1)));
+    graphicObject.boundingBox.push_back(Edge(Vec4(minX, maxY, minZ, 1), Vec4(maxX, maxY, minZ, 1)));
+
+    graphicObject.boundingBox.push_back(Edge(Vec4(minX, minY, maxZ, 1), Vec4(maxX, minY, maxZ, 1)));
+    graphicObject.boundingBox.push_back(Edge(Vec4(minX, minY, maxZ, 1), Vec4(minX, maxY, maxZ, 1)));
+    graphicObject.boundingBox.push_back(Edge(Vec4(maxX, minY, maxZ, 1), Vec4(maxX, maxY, maxZ, 1)));
+    graphicObject.boundingBox.push_back(Edge(Vec4(minX, maxY, maxZ, 1), Vec4(maxX, maxY, maxZ, 1)));
+
+    graphicObject.boundingBox.push_back(Edge(Vec4(minX, minY, minZ, 1), Vec4(minX, minY, maxZ, 1)));
+    graphicObject.boundingBox.push_back(Edge(Vec4(maxX, minY, minZ, 1), Vec4(maxX, minY, maxZ, 1)));
+    graphicObject.boundingBox.push_back(Edge(Vec4(minX, maxY, minZ, 1), Vec4(minX, maxY, maxZ, 1)));
+    graphicObject.boundingBox.push_back(Edge(Vec4(maxX, maxY, minZ, 1), Vec4(maxX, maxY, maxZ, 1)));
+    
+
+    graphicObjects.push_back(graphicObject);
 	/* Close the object. */
 	return true;
 }

@@ -81,6 +81,8 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "&Orthographic",               ID_VIEW_ORTHOGRAPHIC
         MENUITEM "&Perspective",                ID_VIEW_PERSPECTIVE
+        MENUITEM SEPARATOR
+        MENUITEM "Bounding Box",                ID_VIEW_BOUNDINGBOX
     END
     POPUP "A&ction"
     BEGIN

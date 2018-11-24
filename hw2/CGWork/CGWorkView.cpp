@@ -65,12 +65,14 @@ ON_UPDATE_COMMAND_UI(ID_LIGHT_SHADING_FLAT, OnUpdateLightShadingFlat)
 ON_COMMAND(ID_LIGHT_SHADING_GOURAUD, OnLightShadingGouraud)
 ON_UPDATE_COMMAND_UI(ID_LIGHT_SHADING_GOURAUD, OnUpdateLightShadingGouraud)
 ON_COMMAND(ID_LIGHT_CONSTANTS, OnLightConstants)
+ON_COMMAND(ID_OPTIONS_MOUSESENSITIVITY, OnOptionsMousesensitivity)
+ON_UPDATE_COMMAND_UI(ID_VIEW_BOUNDINGBOX, OnUpdateViewBoundingbox)
+ON_COMMAND(ID_VIEW_BOUNDINGBOX, OnViewBoundingbox)
 //}}AFX_MSG_MAP
 ON_WM_TIMER()
 ON_WM_KEYUP()
 ON_WM_KEYDOWN()
 ON_WM_MOUSEMOVE()
-ON_COMMAND(ID_OPTIONS_MOUSESENSITIVITY, &CCGWorkView::OnOptionsMousesensitivity)
 END_MESSAGE_MAP()
 
 // A patch to fix GLaux disappearance from VS2005 to VS2008
@@ -105,7 +107,8 @@ CCGWorkView::CCGWorkView()
     m_pDbBitMap = NULL;
     m_pDbDC = NULL;
 
-    mouseSensitivity = 1;
+    mouseSensitivity = 5;
+    drawBoundingBox = false;
     lastCursorLocation = CPoint();
     thetaX = 0;
     thetaY = 0;
@@ -251,7 +254,6 @@ BOOL CCGWorkView::OnEraseBkgnd(CDC* pDC)
 
 void CCGWorkView::OnDraw(CDC* pDC)
 {
-    //static float theta = 0.0f;
     CCGWorkDoc* pDoc = GetDocument();
     ASSERT_VALID(pDoc);
     if (!pDoc)
@@ -261,7 +263,7 @@ void CCGWorkView::OnDraw(CDC* pDC)
     GetClientRect(&r);
     CDC* pDCToUse = /*m_pDC*/ m_pDbDC;
 
-    pDCToUse->FillSolidRect(&r, RGB(255, 255, 0));
+    pDCToUse->FillSolidRect(&r, RGB(255, 255, 255));
 
     Mat4 rotateX = Mat4(
         Vec4(1, 0, 0, 0),
@@ -297,46 +299,37 @@ void CCGWorkView::OnDraw(CDC* pDC)
         Vec4(0, 0, 0, 0));*/
 
     Mat4 t = screen * translate * scale * rotateZ * rotateY * rotateX;
-    for (Edge e : edges) {
-        Vec4 start = t * e.start;
-        //int xstart = (start.x + 1) * r.Width() / 2;
-        //int ystart = (start.y + 1) * r.Height() / 2;
+    for (GraphicObject o : graphicObjects) {
+        for (Edge e : o.edges) {
+            Vec4 start = t * e.start;
+            Vec4 end = t * e.end;
 
-        Vec4 end = t * e.end;
-        //int xend = (end.x + 1) * r.Width() / 2;
-        //int yend = (end.y + 1) * r.Height() / 2;
+            pDCToUse->MoveTo(start.x, start.y);
+            auto pen = pDCToUse->SelectStockObject(DC_PEN);
+            pDCToUse->SetDCPenColor(RGB(o.red, o.green, o.blue));
+            COLORREF vv = pDCToUse->GetDCPenColor();
+            pDCToUse->LineTo(end.x, end.y);
+        }
+        if (drawBoundingBox) {
+            for (Edge e : o.boundingBox) {
+                Vec4 start = t * e.start;
+                Vec4 end = t * e.end;
 
-        //pDCToUse->MoveTo(start.x+half_w, start.y+half_h);
-        //pDCToUse->LineTo(end.x+half_w, end.y + half_h);
-        pDCToUse->MoveTo(start.x, start.y);
-        auto pen = pDCToUse->SelectStockObject(DC_PEN);
-        pDCToUse->SetDCPenColor(RGB(e.red, e.green, e.blue));
-        COLORREF vv = pDCToUse->GetDCPenColor();
-        pDCToUse->LineTo(end.x, end.y);
+                pDCToUse->MoveTo(start.x, start.y);
+                auto pen = pDCToUse->SelectStockObject(DC_PEN);
+                pDCToUse->SetDCPenColor(RGB(o.red, o.green, o.blue));
+                COLORREF vv = pDCToUse->GetDCPenColor();
+                pDCToUse->LineTo(end.x, end.y);
+            }
+        }
     }
+    
 
-    /*
-	int numLines = 100;
-	float radius = r.right / 3;
-	
-	if (r.right > r.bottom) {
-		radius = r.bottom / 3;
-	}
-	
-	for (int i = 0; i < numLines; ++i)
-	{
-		float finalTheta = 2 * M_PI / numLines*i + theta*M_PI/180.0f;
-		
-		pDCToUse->MoveTo(r.right / 2, r.bottom / 2);
-		pDCToUse->LineTo(r.right / 2 + radius*cos(finalTheta), r.bottom / 2 + radius*sin(finalTheta));
-	}	
-    */
     if (pDCToUse != m_pDC) {
         m_pDC->BitBlt(r.left, r.top, r.Width(), r.Height(), pDCToUse, r.left, r.top, SRCCOPY);
     }
-
-    /*theta += 5;	*/
 }
+
 
 /////////////////////////////////////////////////////////////////////////////
 // CCGWorkView CGWork Finishing and clearing...
@@ -374,7 +367,7 @@ void CCGWorkView::OnFileLoad()
     if (dlg.DoModal() == IDOK) {
         m_strItdFileName = dlg.GetPathName(); // Full path and filename
         PngWrapper p;
-        edges.clear();
+        graphicObjects.clear();
         CGSkelProcessIritDataFiles(m_strItdFileName, 1);
         // Open the file and read it.
         // Your code here...
@@ -644,4 +637,16 @@ void CCGWorkView::OnOptionsMousesensitivity()
     if (dlg.DoModal() == IDOK) {
         mouseSensitivity = dlg.getSensitivity();
     }
+}
+
+void CCGWorkView::OnUpdateViewBoundingbox(CCmdUI* pCmdUI)
+{
+    // TODO: Add your command update UI handler code here
+    pCmdUI->SetCheck(drawBoundingBox);
+    Invalidate();
+}
+
+void CCGWorkView::OnViewBoundingbox()
+{
+    drawBoundingBox = !drawBoundingBox;
 }

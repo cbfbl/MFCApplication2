@@ -16,9 +16,9 @@ using std::vector;
 #include "allocate.h"
 #include "ip_cnvrt.h"
 #include "symb_lib.h"
-#include "Edge.h"
+#include "GraphicObject.h"
 
-extern vector<Edge> edges;
+extern vector<GraphicObject> graphicObjects;
 
 bool CGSkelProcessIritDataFiles(CString &FileNames, int NumFiles);
 void CGSkelDumpOneTraversedObject(IPObjectStruct *PObj, IrtHmgnMatType Mat, void *Data);

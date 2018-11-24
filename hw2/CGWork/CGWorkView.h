@@ -49,6 +49,7 @@ private:
 	LightParams m_lights[MAX_LIGHT];	//configurable lights array
 	LightParams m_ambientLight;		//ambient light (only RGB is used)
 
+    bool drawBoundingBox;
     CPoint lastCursorLocation;
     Mat4 screen;
     double thetaX;
@@ -139,6 +140,8 @@ public:
     afx_msg void OnOptionsMousesensitivity();
     afx_msg void OnAxisXy();
     afx_msg void OnUpdateAxisXy(CCmdUI* pCmdUI);
+    afx_msg void OnUpdateViewBoundingbox(CCmdUI* pCmdUI);
+    afx_msg void OnViewBoundingbox();
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp
