@@ -677,9 +677,45 @@ void CCGWorkView::OnNormalPolygons()
 
 void CCGWorkView::drawLine(Vec4& start, Vec4& end, COLORREF color, CDC* dc)
 {
-    dc->MoveTo(start.x, start.y);
-    auto pen = dc->SelectStockObject(DC_PEN);
-    dc->SetDCPenColor(color);
-    COLORREF vv = dc->GetDCPenColor();
-    dc->LineTo(end.x, end.y);
+	int x1 = start.x;
+	int y1 = start.y;
+	int x2 = end.x;
+	int y2 = end.y;
+	int x = x1;
+	int y = y1;
+	int dx = x2 - x1 > 0 ? x2 - x1 : x1 - x2;
+	int dy = y2 - y1 > 0 ? y2 - y1 : y1 - y2;
+	int s1 = x2 > x1 ? 1 : -1;
+	int s2 = y2 > y1 ? 1 : -1;
+	int change = 0;
+		if (dy > dx) {
+			int tmp = dx;
+			dx = dy;
+			dy = tmp;
+			change = 1;
+		}
+		else {
+			change = 0;
+		}
+		int ne = 2 * dy - dx;
+		int a = 2 * dy;
+		int b = 2 * dy - 2 * dx;
+		dc->SetPixel(x, y, RGB(0, 0, 0));
+		for (int i = 1; i <= dx; i++) {
+			if (ne < 0) {
+				if (change == 1) {
+					y = y + s2;
+				}
+				else {
+					x = x + s1;
+				}
+				ne = ne + a;
+			}
+			else {
+				y = y + s2;
+				x = x + s1;
+				ne = ne + b;
+			}
+		dc->SetPixel(x, y, RGB(0, 0, 0));
+	}
 }
