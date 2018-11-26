@@ -17,6 +17,7 @@ using std::vector;
 #include "ip_cnvrt.h"
 #include "symb_lib.h"
 #include "GraphicObject.h"
+#include "GraphicPolygon.h"
 
 extern vector<GraphicObject> graphicObjects;
 

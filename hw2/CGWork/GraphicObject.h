@@ -3,6 +3,7 @@
 #include <vector>
 using std::vector;
 #include "Edge.h"
+#include "GraphicPolygon.h"
 
 class GraphicObject {
 public:
@@ -11,7 +12,7 @@ public:
     ~GraphicObject();
 
     vector<Edge> boundingBox;
-    vector<Edge> edges;
+    vector<GraphicPolygon> polygons;
     int red;
     int green;
     int blue;

@@ -68,6 +68,8 @@ ON_COMMAND(ID_LIGHT_CONSTANTS, OnLightConstants)
 ON_COMMAND(ID_OPTIONS_MOUSESENSITIVITY, OnOptionsMousesensitivity)
 ON_UPDATE_COMMAND_UI(ID_VIEW_BOUNDINGBOX, OnUpdateViewBoundingbox)
 ON_COMMAND(ID_VIEW_BOUNDINGBOX, OnViewBoundingbox)
+ON_COMMAND(ID_NORMAL_POLYGONS, OnNormalPolygons)
+ON_UPDATE_COMMAND_UI(ID_NORMAL_POLYGONS, OnUpdateNormalPolygons)
 //}}AFX_MSG_MAP
 ON_WM_TIMER()
 ON_WM_KEYUP()
@@ -109,6 +111,9 @@ CCGWorkView::CCGWorkView()
 
     mouseSensitivity = 5;
     drawBoundingBox = false;
+    drawPolygonsNormals = false;
+    drawVerticesNormals = false;
+    arePolygonNormalsCalculated = false;
     lastCursorLocation = CPoint();
     thetaX = 0;
     thetaY = 0;
@@ -300,36 +305,42 @@ void CCGWorkView::OnDraw(CDC* pDC)
 
     Mat4 t = screen * translate * scale * rotateZ * rotateY * rotateX;
     for (GraphicObject o : graphicObjects) {
-        for (Edge e : o.edges) {
-            Vec4 start = t * e.start;
-            Vec4 end = t * e.end;
-
-            pDCToUse->MoveTo(start.x, start.y);
-            auto pen = pDCToUse->SelectStockObject(DC_PEN);
-            pDCToUse->SetDCPenColor(RGB(o.red, o.green, o.blue));
-            COLORREF vv = pDCToUse->GetDCPenColor();
-            pDCToUse->LineTo(end.x, end.y);
+        for (GraphicPolygon p : o.polygons) {
+            for (Edge e : p.edges) {
+                Vec4 start = t * e.start;
+                Vec4 end = t * e.end;
+                drawLine(start, end, RGB(o.red, o.green, o.blue), pDCToUse);
+            }
+            if (drawPolygonsNormals) {
+                Vec4 normal;
+                if (!p.isNormalCalculated) {
+                    Vec4 v0 = p.edges[0].end - p.edges[0].start;
+                    Vec4 v1 = p.edges[1].end - p.edges[1].start;
+                    normal = v0.cross(v1).normalize();
+                } else {
+                    // Got normal from model.
+                    normal = p.normal;
+                }
+                normal = normal * 0.1;
+                Vec4 start = t * p.center;
+                Vec4 end = t * (p.center - normal);
+                drawLine(start, end, RGB(o.red, o.green, o.blue), pDCToUse);
+            }
+            arePolygonNormalsCalculated = p.isNormalCalculated;
         }
         if (drawBoundingBox) {
             for (Edge e : o.boundingBox) {
                 Vec4 start = t * e.start;
                 Vec4 end = t * e.end;
-
-                pDCToUse->MoveTo(start.x, start.y);
-                auto pen = pDCToUse->SelectStockObject(DC_PEN);
-                pDCToUse->SetDCPenColor(RGB(o.red, o.green, o.blue));
-                COLORREF vv = pDCToUse->GetDCPenColor();
-                pDCToUse->LineTo(end.x, end.y);
+                drawLine(start, end, RGB(o.red, o.green, o.blue), pDCToUse);
             }
         }
     }
-    
 
     if (pDCToUse != m_pDC) {
         m_pDC->BitBlt(r.left, r.top, r.Width(), r.Height(), pDCToUse, r.left, r.top, SRCCOPY);
     }
 }
-
 
 /////////////////////////////////////////////////////////////////////////////
 // CCGWorkView CGWork Finishing and clearing...
@@ -476,7 +487,6 @@ void CCGWorkView::OnUpdateAxisZ(CCmdUI* pCmdUI)
     pCmdUI->SetCheck(m_nAxis == ID_AXIS_Z);
 }
 
-
 void CCGWorkView::OnAxisXy()
 {
     m_nAxis = ID_AXIS_XY;
@@ -486,8 +496,6 @@ void CCGWorkView::OnUpdateAxisXy(CCmdUI* pCmdUI)
 {
     pCmdUI->SetCheck(m_nAxis == ID_AXIS_XY);
 }
-
-
 
 // OPTIONS HANDLERS ///////////////////////////////////////////
 
@@ -560,7 +568,7 @@ void CCGWorkView::OnMouseMove(UINT nFlags, CPoint point)
 
     if (nFlags & MK_LBUTTON) {
         CPoint diff = point - lastCursorLocation;
-        TRACE("%d, %d\n", diff.x, diff.y);
+        //TRACE("%d, %d\n", diff.x, diff.y);
         Transform(diff);
     }
     lastCursorLocation.SetPoint(point.x, point.y);
@@ -641,7 +649,6 @@ void CCGWorkView::OnOptionsMousesensitivity()
 
 void CCGWorkView::OnUpdateViewBoundingbox(CCmdUI* pCmdUI)
 {
-    // TODO: Add your command update UI handler code here
     pCmdUI->SetCheck(drawBoundingBox);
     Invalidate();
 }
@@ -649,4 +656,30 @@ void CCGWorkView::OnUpdateViewBoundingbox(CCmdUI* pCmdUI)
 void CCGWorkView::OnViewBoundingbox()
 {
     drawBoundingBox = !drawBoundingBox;
+}
+
+void CCGWorkView::OnUpdateNormalPolygons(CCmdUI* pCmdUI)
+{
+    if (arePolygonNormalsCalculated) {
+        pCmdUI->SetText(L"Polygons (calculated)");
+    } else {
+        pCmdUI->SetText(L"Polygons (given by model)");
+    }
+    pCmdUI->SetCheck(drawPolygonsNormals);
+    Invalidate();
+}
+
+void CCGWorkView::OnNormalPolygons()
+{
+    drawPolygonsNormals = !drawPolygonsNormals;
+}
+
+
+void CCGWorkView::drawLine(Vec4& start, Vec4& end, COLORREF color, CDC* dc)
+{
+    dc->MoveTo(start.x, start.y);
+    auto pen = dc->SelectStockObject(DC_PEN);
+    dc->SetDCPenColor(color);
+    COLORREF vv = dc->GetDCPenColor();
+    dc->LineTo(end.x, end.y);
 }

@@ -208,6 +208,7 @@
     <ClCompile Include="MaterialDlg.cpp" />
     <ClCompile Include="MouseSensitivityDialog.cpp" />
     <ClCompile Include="PngWrapper.cpp" />
+    <ClCompile Include="GraphicPolygon.cpp" />
     <ClCompile Include="StdAfx.cpp">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Disabled</Optimization>
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -239,6 +240,7 @@
     <ClInclude Include="MaterialDlg.h" />
     <ClInclude Include="MouseSensitivityDialog.h" />
     <ClInclude Include="PngWrapper.h" />
+    <ClInclude Include="GraphicPolygon.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="StdAfx.h" />
     <ClInclude Include="..\include\allocate.h" />

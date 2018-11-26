@@ -158,98 +158,119 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 		}
 	}
 
+    GraphicObject graphicObject(RGB);
+
     double minX = DBL_MAX;
     double minY = DBL_MAX;
     double minZ = DBL_MAX;
     double maxX = DBL_MIN;
     double maxY = DBL_MIN;
     double maxZ = DBL_MIN;
-    
-    
-
-    GraphicObject graphicObject(RGB);
+   
 	for (PPolygon = PObj -> U.Pl; PPolygon != NULL;	PPolygon = PPolygon -> Pnext) 
 	{
-			if (PPolygon -> PVertex == NULL) {
-				AfxMessageBox(_T("Dump: Attemp to dump empty polygon"));
-				return false;
-			}
+        GraphicPolygon poly;
+        double sumX = 0;
+        double sumY = 0;
+        double sumZ = 0;
+        int vertexCount = 0;
 
-            Vec4 start, end;
-            double vsize;
+		if (PPolygon -> PVertex == NULL) {
+			AfxMessageBox(_T("Dump: Attemp to dump empty polygon"));
+			return false;
+		}
+
+        Vec4 start, end;
+        double vsize;
 			
-            PVertex = PPolygon->PVertex;
-            while (1) {
-                if (PVertex == NULL) break;
+        PVertex = PPolygon->PVertex;
+        while (1) {
+            if (PVertex == NULL) break;
 
-                vsize = 1;
-                start = Vec4(
-                    PVertex->Coord[0] / vsize,
-                    PVertex->Coord[1] / vsize,
-                    PVertex->Coord[2] / vsize,
-                    1);
+            vsize = 1;
+            start = Vec4(
+                PVertex->Coord[0] / vsize,
+                PVertex->Coord[1] / vsize,
+                PVertex->Coord[2] / vsize,
+                1);
 
-                PVertex = PVertex->Pnext;
-                if (PVertex == NULL) {
-                    // We connect the last vertex with the first vertex in order to close the polygon.
-                    PVertex = PPolygon->PVertex; // The first vertex.
-                    vsize = 1;
-                    end = Vec4(
-                        PVertex->Coord[0] / vsize,
-                        PVertex->Coord[1] / vsize,
-                        PVertex->Coord[2] / vsize,
-                        1);
-                    graphicObject.edges.push_back(Edge(start, end));
-                    break;
-                }
-
+            PVertex = PVertex->Pnext;
+            if (PVertex == NULL) {
+                // We connect the last vertex with the first vertex in order to close the polygon.
+                PVertex = PPolygon->PVertex; // The first vertex.
                 vsize = 1;
                 end = Vec4(
                     PVertex->Coord[0] / vsize,
                     PVertex->Coord[1] / vsize,
                     PVertex->Coord[2] / vsize,
                     1);
-
-                graphicObject.edges.push_back(Edge(start, end));
-
-                if (start.x > maxX) {
-                    maxX = start.x;
-                }
-                if (start.y > maxY) {
-                    maxY = start.y;
-                }
-                if (start.z > maxZ) {
-                    maxZ = start.z;
-                }
-
-                if (start.x < minX) {
-                    minX = start.x;
-                }
-                if (start.y < minY) {
-                    minY = start.y;
-                }
-                if (start.z < minZ) {
-                    minZ = start.z;
-                }
+                poly.edges.push_back(Edge(start, end));
+                break;
             }
 
+            vsize = 1;
+            end = Vec4(
+                PVertex->Coord[0] / vsize,
+                PVertex->Coord[1] / vsize,
+                PVertex->Coord[2] / vsize,
+                1);
+
+            poly.edges.push_back(Edge(start, end));
+
+            if (start.x > maxX) {
+                maxX = start.x;
+            }
+            if (start.y > maxY) {
+                maxY = start.y;
+            }
+            if (start.z > maxZ) {
+                maxZ = start.z;
+            }
+
+            if (start.x < minX) {
+                minX = start.x;
+            }
+            if (start.y < minY) {
+                minY = start.y;
+            }
+            if (start.z < minZ) {
+                minZ = start.z;
+            }
+
+            sumX += start.x;
+            sumY += start.y;
+            sumZ += start.z;
+            vertexCount++;
+        }
+
+        poly.center = Vec4(sumX / vertexCount, sumY / vertexCount, sumZ / vertexCount, 1);
+
+
             
-			/* use if(IP_HAS_PLANE_POLY(PPolygon)) to know whether a normal is defined for the polygon
-			   access the normal by the first 3 components of PPolygon->Plane */
-			PVertex = PPolygon -> PVertex;
-			do {			     /* Assume at least one edge in polygon! */
-				/* code handeling all vertex/normal/texture coords */
-				if(IP_HAS_NORMAL_VRTX(PVertex)) 
-				{
-				    int x = 0;
-				    ++x;
-				}
-
-
-				PVertex = PVertex -> Pnext;
+		/* use if(IP_HAS_PLANE_POLY(PPolygon)) to know whether a normal is defined for the polygon
+			access the normal by the first 3 components of PPolygon->Plane */
+		PVertex = PPolygon -> PVertex;
+		do {			     /* Assume at least one edge in polygon! */
+			/* code handeling all vertex/normal/texture coords */
+			if(IP_HAS_NORMAL_VRTX(PVertex)) 
+			{
+				int x = 0;
+				++x;
+                poly.normal = Vec4(
+                    PPolygon->Plane[0],
+                    PPolygon->Plane[1],
+                    PPolygon->Plane[2],
+                    0
+                );
+                poly.isNormalCalculated = false;
 			}
-			while (PVertex != PPolygon -> PVertex && PVertex != NULL);
-			/* Close the polygon. */
+
+
+			PVertex = PVertex -> Pnext;
+		}
+		while (PVertex != PPolygon -> PVertex && PVertex != NULL);
+		/* Close the polygon. */
+        graphicObject.polygons.push_back(poly);
 	}
 
     // Calculate bounding box edges:

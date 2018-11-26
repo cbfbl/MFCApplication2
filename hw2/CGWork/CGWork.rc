@@ -83,6 +83,12 @@ BEGIN
         MENUITEM "&Perspective",                ID_VIEW_PERSPECTIVE
         MENUITEM SEPARATOR
         MENUITEM "Bounding Box",                ID_VIEW_BOUNDINGBOX
+        MENUITEM SEPARATOR
+        POPUP "Normals"
+        BEGIN
+            MENUITEM "Polygons",                    ID_NORMAL_POLYGONS
+            MENUITEM "Vertices",                    ID_NORMALS_VERTICES
+        END
     END
     POPUP "A&ction"
     BEGIN

@@ -50,6 +50,9 @@ private:
 	LightParams m_ambientLight;		//ambient light (only RGB is used)
 
     bool drawBoundingBox;
+    bool drawPolygonsNormals;
+    bool drawVerticesNormals;
+    bool arePolygonNormalsCalculated;
     CPoint lastCursorLocation;
     Mat4 screen;
     double thetaX;
@@ -66,6 +69,7 @@ private:
     int mouseSensitivity;
 
     void Transform(CPoint diff);
+    void drawLine(Vec4& start, Vec4& end, COLORREF color, CDC* dc);
 
 // Overrides
 	// ClassWizard generated virtual function overrides
@@ -142,6 +146,8 @@ public:
     afx_msg void OnUpdateAxisXy(CCmdUI* pCmdUI);
     afx_msg void OnUpdateViewBoundingbox(CCmdUI* pCmdUI);
     afx_msg void OnViewBoundingbox();
+    afx_msg void OnNormalPolygons();
+    afx_msg void OnUpdateNormalPolygons(CCmdUI* pCmdUI);
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp
