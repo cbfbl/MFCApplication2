@@ -621,8 +621,8 @@ void CCGWorkView::Transform(CPoint diff)
     case ID_AXIS_XY:
         switch (m_nAction) {
         case ID_ACTION_ROTATE:
-            thetaX += dx;
-            thetaY += dy;
+            thetaX += dy;
+            thetaY += dx;
             break;
         case ID_ACTION_SCALE:
             scaleX = max(0.1, scaleX + dx);
