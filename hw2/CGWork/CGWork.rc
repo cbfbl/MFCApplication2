@@ -86,8 +86,11 @@ BEGIN
         MENUITEM SEPARATOR
         POPUP "Normals"
         BEGIN
-            MENUITEM "Polygons",                    ID_NORMAL_POLYGONS
-            MENUITEM "Vertices",                    ID_NORMALS_VERTICES
+            MENUITEM "Polygons (Calculated)",       ID_NORMAL_POLYGONS_CALCULATED
+            MENUITEM "Polygons (Given by model)",   ID_NORMAL_POLYGONS_GIVEN
+            MENUITEM "Vertices (Calculated)",       ID_NORMAL_VERTICES_CALCULATED
+            MENUITEM "Vertices (Given by model)",   ID_NORMAL_VERTICES_GIVEN
+            MENUITEM "None",                        ID_NORMALS_NONE
         END
     END
     POPUP "A&ction"

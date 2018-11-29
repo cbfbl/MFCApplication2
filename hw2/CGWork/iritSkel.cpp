@@ -262,7 +262,6 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
                     PPolygon->Plane[2],
                     0
                 );
-                poly.isNormalCalculated = false;
 			}
 
 

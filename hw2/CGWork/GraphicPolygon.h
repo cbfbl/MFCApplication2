@@ -14,7 +14,5 @@ public:
     Vec4 center;
     Vec4 normal;
 
-    bool isNormalCalculated;
-
 private:
 };

@@ -2,7 +2,7 @@
 
 GraphicPolygon::GraphicPolygon()
 {
-    isNormalCalculated = true;
+    
 }
 
 GraphicPolygon::~GraphicPolygon()

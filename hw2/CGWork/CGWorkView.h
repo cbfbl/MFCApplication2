@@ -50,9 +50,7 @@ private:
 	LightParams m_ambientLight;		//ambient light (only RGB is used)
 
     bool drawBoundingBox;
-    bool drawPolygonsNormals;
-    bool drawVerticesNormals;
-    bool arePolygonNormalsCalculated;
+    int drawNormals;
     CPoint lastCursorLocation;
     Mat4 screen;
     double thetaX;
@@ -146,8 +144,17 @@ public:
     afx_msg void OnUpdateAxisXy(CCmdUI* pCmdUI);
     afx_msg void OnUpdateViewBoundingbox(CCmdUI* pCmdUI);
     afx_msg void OnViewBoundingbox();
-    afx_msg void OnNormalPolygons();
-    afx_msg void OnUpdateNormalPolygons(CCmdUI* pCmdUI);
+    afx_msg void OnNormalPolygonsCalculated();
+    afx_msg void OnUpdateNormalPolygonsCalculated(CCmdUI* pCmdUI);
+    afx_msg void OnNormalPolygonsGiven();
+    afx_msg void OnUpdateNormalPolygonsGiven(CCmdUI* pCmdUI);
+    afx_msg void OnNormalVerticesCalculated();
+    afx_msg void OnUpdateNormalVerticesCalculated(CCmdUI* pCmdUI);
+    afx_msg void OnNormalVerticesGiven();
+    afx_msg void OnUpdateNormalVerticesGiven(CCmdUI* pCmdUI);
+    afx_msg void OnNormalNone();
+    afx_msg void OnUpdateNormalNone(CCmdUI* pCmdUI);
+
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp

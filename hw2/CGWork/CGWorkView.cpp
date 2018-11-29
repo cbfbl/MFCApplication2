@@ -68,8 +68,16 @@ ON_COMMAND(ID_LIGHT_CONSTANTS, OnLightConstants)
 ON_COMMAND(ID_OPTIONS_MOUSESENSITIVITY, OnOptionsMousesensitivity)
 ON_UPDATE_COMMAND_UI(ID_VIEW_BOUNDINGBOX, OnUpdateViewBoundingbox)
 ON_COMMAND(ID_VIEW_BOUNDINGBOX, OnViewBoundingbox)
-ON_COMMAND(ID_NORMAL_POLYGONS, OnNormalPolygons)
-ON_UPDATE_COMMAND_UI(ID_NORMAL_POLYGONS, OnUpdateNormalPolygons)
+ON_COMMAND(ID_NORMAL_POLYGONS_CALCULATED, OnNormalPolygonsCalculated)
+ON_UPDATE_COMMAND_UI(ID_NORMAL_POLYGONS_CALCULATED, OnUpdateNormalPolygonsCalculated)
+ON_COMMAND(ID_NORMAL_POLYGONS_GIVEN, OnNormalPolygonsGiven)
+ON_UPDATE_COMMAND_UI(ID_NORMAL_POLYGONS_GIVEN, OnUpdateNormalPolygonsGiven)
+ON_COMMAND(ID_NORMAL_VERTICES_CALCULATED, OnNormalVerticesCalculated)
+ON_UPDATE_COMMAND_UI(ID_NORMAL_VERTICES_CALCULATED, OnUpdateNormalVerticesCalculated)
+ON_COMMAND(ID_NORMAL_VERTICES_GIVEN, OnNormalVerticesGiven)
+ON_UPDATE_COMMAND_UI(ID_NORMAL_VERTICES_GIVEN, OnUpdateNormalVerticesGiven)
+ON_COMMAND(ID_NORMALS_NONE, OnNormalNone)
+ON_UPDATE_COMMAND_UI(ID_NORMALS_NONE, OnUpdateNormalNone)
 //}}AFX_MSG_MAP
 ON_WM_TIMER()
 ON_WM_KEYUP()
@@ -111,9 +119,6 @@ CCGWorkView::CCGWorkView()
 
     mouseSensitivity = 5;
     drawBoundingBox = false;
-    drawPolygonsNormals = false;
-    drawVerticesNormals = false;
-    arePolygonNormalsCalculated = false;
     lastCursorLocation = CPoint();
     thetaX = 0;
     thetaY = 0;
@@ -306,28 +311,42 @@ void CCGWorkView::OnDraw(CDC* pDC)
     Mat4 t = screen * translate * scale * rotateZ * rotateY * rotateX;
     for (GraphicObject o : graphicObjects) {
         for (GraphicPolygon p : o.polygons) {
+
+            // Draw the edges of the polygon:
             for (Edge e : p.edges) {
                 Vec4 start = t * e.start;
                 Vec4 end = t * e.end;
                 drawLine(start, end, RGB(o.red, o.green, o.blue), pDCToUse);
             }
-            if (drawPolygonsNormals) {
-                Vec4 normal;
-                if (!p.isNormalCalculated) {
-                    Vec4 v0 = p.edges[0].end - p.edges[0].start;
-                    Vec4 v1 = p.edges[1].end - p.edges[1].start;
-                    normal = v0.cross(v1).normalize();
-                } else {
-                    // Got normal from model.
-                    normal = p.normal;
-                }
+
+            // Draw the normals of the polygon:
+            Vec4 normal, v0, v1, start, end;
+            switch (drawNormals) {
+            case ID_NORMAL_POLYGONS_CALCULATED:
+                v0 = p.edges[0].end - p.edges[0].start;
+                v1 = p.edges[1].end - p.edges[1].start;
+                normal = v0.cross(v1).normalize();
                 normal = normal * 0.1;
-                Vec4 start = t * p.center;
-                Vec4 end = t * (p.center - normal);
+                start = t * p.center;
+                end = t * (p.center - normal);
                 drawLine(start, end, RGB(o.red, o.green, o.blue), pDCToUse);
+                break;
+            case ID_NORMAL_POLYGONS_GIVEN:
+                normal = p.normal;
+                start = t * p.center;
+                end = t * (p.center - normal);
+                drawLine(start, end, RGB(o.red, o.green, o.blue), pDCToUse);
+                break;
+            case ID_NORMAL_VERTICES_CALCULATED:
+                break;
+            case ID_NORMAL_VERTICES_GIVEN:
+                break;
+            default:
+                break;
             }
-            arePolygonNormalsCalculated = p.isNormalCalculated;
         }
+
+        // Draw the bounding box of the object:
         if (drawBoundingBox) {
             for (Edge e : o.boundingBox) {
                 Vec4 start = t * e.start;
@@ -658,20 +677,59 @@ void CCGWorkView::OnViewBoundingbox()
     drawBoundingBox = !drawBoundingBox;
 }
 
-void CCGWorkView::OnUpdateNormalPolygons(CCmdUI* pCmdUI)
+void CCGWorkView::OnUpdateNormalPolygonsCalculated(CCmdUI* pCmdUI)
 {
-    if (arePolygonNormalsCalculated) {
-        pCmdUI->SetText(L"Polygons (calculated)");
-    } else {
-        pCmdUI->SetText(L"Polygons (given by model)");
-    }
-    pCmdUI->SetCheck(drawPolygonsNormals);
+    pCmdUI->SetCheck(drawNormals == ID_NORMAL_POLYGONS_CALCULATED);
     Invalidate();
 }
 
-void CCGWorkView::OnNormalPolygons()
+void CCGWorkView::OnNormalPolygonsCalculated()
 {
-    drawPolygonsNormals = !drawPolygonsNormals;
+    drawNormals = ID_NORMAL_POLYGONS_CALCULATED;
+}
+
+void CCGWorkView::OnUpdateNormalPolygonsGiven(CCmdUI* pCmdUI)
+{
+    pCmdUI->SetCheck(drawNormals == ID_NORMAL_POLYGONS_GIVEN);
+    Invalidate();
+}
+
+void CCGWorkView::OnNormalPolygonsGiven()
+{
+    drawNormals = ID_NORMAL_POLYGONS_GIVEN;
+}
+
+
+void CCGWorkView::OnUpdateNormalVerticesCalculated(CCmdUI* pCmdUI)
+{
+    pCmdUI->SetCheck(drawNormals == ID_NORMAL_VERTICES_CALCULATED);
+    Invalidate();
+}
+
+void CCGWorkView::OnNormalVerticesCalculated()
+{
+    drawNormals = ID_NORMAL_VERTICES_CALCULATED;
+}
+
+void CCGWorkView::OnUpdateNormalVerticesGiven(CCmdUI* pCmdUI)
+{
+    pCmdUI->SetCheck(drawNormals == ID_NORMAL_VERTICES_GIVEN);
+    Invalidate();
+}
+
+void CCGWorkView::OnNormalVerticesGiven()
+{
+    drawNormals = ID_NORMAL_VERTICES_GIVEN;
+}
+void CCGWorkView::OnUpdateNormalNone(CCmdUI* pCmdUI)
+{
+    pCmdUI->SetCheck(drawNormals == ID_NORMALS_NONE);
+    Invalidate();
+}
+
+void CCGWorkView::OnNormalNone()
+{
+    drawNormals = ID_NORMALS_NONE;
 }
 
 

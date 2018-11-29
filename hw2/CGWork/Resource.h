@@ -61,13 +61,19 @@
 #define ID_VIEW_NORMAL                  32806
 #define ID_NORMAL_POLYGONS              32807
 #define ID_NORMALS_VERTICES             32808
+#define ID_NORMAL_POLYGONS_CALCULATED   32809
+#define ID_VIEW_NORMALS                 32810
+#define ID_NORMAL_POLYGONS_GIVEN        32811
+#define ID_NORMAL_VERTICES_CALCULATED   32812
+#define ID_NORMAL_VERTICES_GIVEN        32813
+#define ID_NORMALS_NONE                 32814
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        142
-#define _APS_NEXT_COMMAND_VALUE         32809
+#define _APS_NEXT_COMMAND_VALUE         32815
 #define _APS_NEXT_CONTROL_VALUE         1045
 #define _APS_NEXT_SYMED_VALUE           104
 #endif
