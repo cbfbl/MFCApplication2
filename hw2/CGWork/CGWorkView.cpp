@@ -774,6 +774,6 @@ void CCGWorkView::drawLine(Vec4& start, Vec4& end, COLORREF color, CDC* dc)
 				x = x + s1;
 				ne = ne + b;
 			}
-		dc->SetPixel(x, y, RGB(0, 0, 0));
+		dc->SetPixel(x, y, color);
 	}
 }
