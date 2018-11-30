@@ -83,6 +83,9 @@ ON_WM_TIMER()
 ON_WM_KEYUP()
 ON_WM_KEYDOWN()
 ON_WM_MOUSEMOVE()
+ON_COMMAND(ID_OPTIONS_WIREFRAMECOLOR,OnOptionsWireframecolor)
+ON_COMMAND(ID_OPTIONS_NORMALSCOLOR, OnOptionsNormalscolor)
+ON_COMMAND(ID_OPTIONS_BACKGROUNDCOLOR, OnOptionsBackgroundcolor)
 END_MESSAGE_MAP()
 
 // A patch to fix GLaux disappearance from VS2005 to VS2008
@@ -129,6 +132,11 @@ CCGWorkView::CCGWorkView()
     translateX = 0;
     translateY = 0;
     translateZ = 0;
+    wireframeColor = RGB(0, 0, 0);
+    useCustomWireframeColor = false;
+    normalsColor = RGB(0, 0, 0);
+    useCustomNormalsColor = false;
+    backgroundColor = RGB(255, 255, 255);
 }
 
 CCGWorkView::~CCGWorkView()
@@ -273,7 +281,7 @@ void CCGWorkView::OnDraw(CDC* pDC)
     GetClientRect(&r);
     CDC* pDCToUse = /*m_pDC*/ m_pDbDC;
 
-    pDCToUse->FillSolidRect(&r, RGB(255, 255, 255));
+    pDCToUse->FillSolidRect(&r, backgroundColor);
 
     Mat4 rotateX = Mat4(
         Vec4(1, 0, 0, 0),
@@ -310,13 +318,15 @@ void CCGWorkView::OnDraw(CDC* pDC)
 
     Mat4 t = screen * translate * scale * rotateZ * rotateY * rotateX;
     for (GraphicObject o : graphicObjects) {
-        for (GraphicPolygon p : o.polygons) {
+        COLORREF objectColor = useCustomWireframeColor ? wireframeColor : RGB(o.red, o.green, o.blue); 
+        COLORREF normalColor = useCustomNormalsColor ? normalsColor : RGB(o.red, o.green, o.blue);
 
+        for (GraphicPolygon p : o.polygons) {   
             // Draw the edges of the polygon:
             for (Edge e : p.edges) {
                 Vec4 start = t * e.start;
                 Vec4 end = t * e.end;
-                drawLine(start, end, RGB(o.red, o.green, o.blue), pDCToUse);
+                drawLine(start, end, objectColor, pDCToUse);
             }
 
             // Draw the normals of the polygon:
@@ -326,16 +336,16 @@ void CCGWorkView::OnDraw(CDC* pDC)
                 v0 = p.edges[0].end - p.edges[0].start;
                 v1 = p.edges[1].end - p.edges[1].start;
                 normal = v0.cross(v1).normalize();
-                normal = normal * 0.1;
+                normal = normal * 0.1; // TODO: fixme
                 start = t * p.center;
                 end = t * (p.center - normal);
-                drawLine(start, end, RGB(o.red, o.green, o.blue), pDCToUse);
+                drawLine(start, end, normalColor, pDCToUse);
                 break;
             case ID_NORMAL_POLYGONS_GIVEN:
                 normal = p.normal;
                 start = t * p.center;
                 end = t * (p.center - normal);
-                drawLine(start, end, RGB(o.red, o.green, o.blue), pDCToUse);
+                drawLine(start, end, normalColor, pDCToUse);
                 break;
             case ID_NORMAL_VERTICES_CALCULATED:
                 break;
@@ -351,7 +361,7 @@ void CCGWorkView::OnDraw(CDC* pDC)
             for (Edge e : o.boundingBox) {
                 Vec4 start = t * e.start;
                 Vec4 end = t * e.end;
-                drawLine(start, end, RGB(o.red, o.green, o.blue), pDCToUse);
+                drawLine(start, end, objectColor, pDCToUse);
             }
         }
     }
@@ -401,7 +411,7 @@ void CCGWorkView::OnFileLoad()
         CGSkelProcessIritDataFiles(m_strItdFileName, 1);
         // Open the file and read it.
         // Your code here...
-
+        
         Invalidate(); // force a WM_PAINT for drawing.
     }
 }
@@ -758,7 +768,7 @@ void CCGWorkView::drawLine(Vec4& start, Vec4& end, COLORREF color, CDC* dc)
 		int ne = 2 * dy - dx;
 		int a = 2 * dy;
 		int b = 2 * dy - 2 * dx;
-		dc->SetPixel(x, y, RGB(0, 0, 0));
+		dc->SetPixel(x, y, color);
 		for (int i = 1; i <= dx; i++) {
 			if (ne < 0) {
 				if (change == 1) {
@@ -776,4 +786,39 @@ void CCGWorkView::drawLine(Vec4& start, Vec4& end, COLORREF color, CDC* dc)
 			}
 		dc->SetPixel(x, y, color);
 	}
+}
+
+void CCGWorkView::OnOptionsWireframecolor()
+{
+    CColorDialog colorDialog;
+    colorDialog.m_cc.Flags |= CC_RGBINIT;
+    colorDialog.m_cc.rgbResult = wireframeColor;
+    if (colorDialog.DoModal() == IDOK) {
+        wireframeColor = colorDialog.GetColor();
+        useCustomWireframeColor = true;
+        Invalidate();
+    }
+}
+
+void CCGWorkView::OnOptionsNormalscolor()
+{
+    CColorDialog colorDialog;
+    colorDialog.m_cc.Flags |= CC_RGBINIT;
+    colorDialog.m_cc.rgbResult = normalsColor;
+    if (colorDialog.DoModal() == IDOK) {
+        normalsColor = colorDialog.GetColor();
+        useCustomNormalsColor = true;
+        Invalidate();
+    }
+}
+
+void CCGWorkView::OnOptionsBackgroundcolor()
+{
+    CColorDialog colorDialog;
+    colorDialog.m_cc.Flags |= CC_RGBINIT;
+    colorDialog.m_cc.rgbResult = backgroundColor;
+    if (colorDialog.DoModal() == IDOK) {
+        backgroundColor = colorDialog.GetColor();
+        Invalidate();
+    }
 }

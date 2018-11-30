@@ -63,7 +63,11 @@ private:
     double translateY;
     double translateZ;
     double projection_d;
-
+    COLORREF wireframeColor;
+    bool useCustomWireframeColor;
+    COLORREF normalsColor;
+    bool useCustomNormalsColor;
+    COLORREF backgroundColor;
     int mouseSensitivity;
 
     void Transform(CPoint diff);
@@ -155,6 +159,9 @@ public:
     afx_msg void OnNormalNone();
     afx_msg void OnUpdateNormalNone(CCmdUI* pCmdUI);
 
+    afx_msg void OnOptionsWireframecolor();
+    afx_msg void OnOptionsNormalscolor();
+    afx_msg void OnOptionsBackgroundcolor();
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp
