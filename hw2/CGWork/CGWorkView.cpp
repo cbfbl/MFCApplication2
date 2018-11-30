@@ -333,16 +333,19 @@ void CCGWorkView::OnDraw(CDC* pDC)
             }
 
             // Draw the normals of the polygon:
-            Vec4 normal, v0, v1, start, end;
+            Vec4 normal, v0, v1, start, end,direction;
+			double direction_length;
             switch (drawNormals) {
             case ID_NORMAL_POLYGONS_CALCULATED:
                 v0 = p.edges[0].end - p.edges[0].start;
                 v1 = p.edges[1].end - p.edges[1].start;
                 normal = v0.cross(v1).normalize();
-                normal = normal * 0.1; // TODO: fixme
                 start = t * p.center;
                 end = t * (p.center - normal);
-                drawLine(start, end, normalColor, pDCToUse);
+				direction = end - start;
+				direction_length = sqrt(pow(direction.x, 2) + pow(direction.y, 2) + pow(direction.z, 2));
+				direction = Vec4(direction.x / direction_length, direction.y / direction_length, direction.z / direction_length, 1);
+                drawLine(start, start+direction*20, normalColor, pDCToUse);
                 break;
             case ID_NORMAL_POLYGONS_GIVEN:
                 normal = p.normal;
