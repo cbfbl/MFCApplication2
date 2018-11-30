@@ -86,6 +86,10 @@ ON_WM_MOUSEMOVE()
 ON_COMMAND(ID_OPTIONS_WIREFRAMECOLOR,OnOptionsWireframecolor)
 ON_COMMAND(ID_OPTIONS_NORMALSCOLOR, OnOptionsNormalscolor)
 ON_COMMAND(ID_OPTIONS_BACKGROUNDCOLOR, OnOptionsBackgroundcolor)
+ON_UPDATE_COMMAND_UI(ID_ACTION_VIEW, &CCGWorkView::OnUpdateActionView)
+ON_UPDATE_COMMAND_UI(ID_ACTION_OBJECT, &CCGWorkView::OnUpdateActionObject)
+ON_COMMAND(ID_ACTION_VIEW, &CCGWorkView::OnActionView)
+ON_COMMAND(ID_ACTION_OBJECT, &CCGWorkView::OnActionObject)
 END_MESSAGE_MAP()
 
 // A patch to fix GLaux disappearance from VS2005 to VS2008
@@ -126,9 +130,9 @@ CCGWorkView::CCGWorkView()
     thetaX = 0;
     thetaY = 0;
     thetaZ = 0;
-    scaleX = 0.1;
-    scaleY = 0.1;
-    scaleZ = 0.1;
+    scaleX = 0.14;
+    scaleY = 0.14;
+    scaleZ = 0.14;
     translateX = 0;
     translateY = 0;
     translateZ = 0;
@@ -137,6 +141,7 @@ CCGWorkView::CCGWorkView()
     normalsColor = RGB(0, 0, 0);
     useCustomNormalsColor = false;
     backgroundColor = RGB(255, 255, 255);
+	object = false;
 }
 
 CCGWorkView::~CCGWorkView()
@@ -308,15 +313,13 @@ void CCGWorkView::OnDraw(CDC* pDC)
         Vec4(0, 1, 0, translateY),
         Vec4(0, 0, 1, translateZ),
         Vec4(0, 0, 0, 1));
-
-    /*double d = 0.5;
-    Mat4 perspective = Mat4(
-        Vec4(1, 0, 0, 0),
-        Vec4(0, 1, 0 ,0),
-        Vec4(0, 0, 1, 1/d),
-        Vec4(0, 0, 0, 0));*/
-
-    Mat4 t = screen * translate * scale * rotateZ * rotateY * rotateX;
+	Mat4 t;
+	if (object) {
+		t = screen * translate * scale * rotateZ * rotateY * rotateX;
+	}
+	else {
+		t = screen * translate * scale * rotateX * rotateY * rotateZ;
+	}
     for (GraphicObject o : graphicObjects) {
         COLORREF objectColor = useCustomWireframeColor ? wireframeColor : RGB(o.red, o.green, o.blue); 
         COLORREF normalColor = useCustomNormalsColor ? normalsColor : RGB(o.red, o.green, o.blue);
@@ -821,4 +824,32 @@ void CCGWorkView::OnOptionsBackgroundcolor()
         backgroundColor = colorDialog.GetColor();
         Invalidate();
     }
+}
+
+
+void CCGWorkView::OnUpdateActionView(CCmdUI *pCmdUI)
+{
+	// TODO: Add your command update UI handler code here
+	pCmdUI->SetCheck(!object);
+}
+
+
+void CCGWorkView::OnUpdateActionObject(CCmdUI *pCmdUI)
+{
+	// TODO: Add your command update UI handler code here
+	pCmdUI->SetCheck(object);
+}
+
+
+void CCGWorkView::OnActionView()
+{
+	// TODO: Add your command handler code here
+	object = false;
+}
+
+
+void CCGWorkView::OnActionObject()
+{
+	// TODO: Add your command handler code here
+	object = true;
 }

@@ -69,6 +69,7 @@ private:
     bool useCustomNormalsColor;
     COLORREF backgroundColor;
     int mouseSensitivity;
+	bool object;
 
     void Transform(CPoint diff);
     void drawLine(Vec4& start, Vec4& end, COLORREF color, CDC* dc);
@@ -162,6 +163,10 @@ public:
     afx_msg void OnOptionsWireframecolor();
     afx_msg void OnOptionsNormalscolor();
     afx_msg void OnOptionsBackgroundcolor();
+	afx_msg void OnUpdateActionView(CCmdUI *pCmdUI);
+	afx_msg void OnUpdateActionObject(CCmdUI *pCmdUI);
+	afx_msg void OnActionView();
+	afx_msg void OnActionObject();
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp

@@ -98,6 +98,9 @@ BEGIN
         MENUITEM "&Rotate",                     ID_ACTION_ROTATE
         MENUITEM "&Translate",                  ID_ACTION_TRANSLATE
         MENUITEM "&Scale",                      ID_ACTION_SCALE
+        MENUITEM SEPARATOR
+        MENUITEM "View",                        ID_ACTION_VIEW
+        MENUITEM "Object",                      ID_ACTION_OBJECT
     END
     POPUP "A&xis"
     BEGIN
