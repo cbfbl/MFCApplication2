@@ -207,6 +207,7 @@
     <ClCompile Include="Mat4.cpp" />
     <ClCompile Include="MaterialDlg.cpp" />
     <ClCompile Include="MouseSensitivityDialog.cpp" />
+    <ClCompile Include="ObjectSelectionDialog.cpp" />
     <ClCompile Include="PngWrapper.cpp" />
     <ClCompile Include="GraphicPolygon.cpp" />
     <ClCompile Include="StdAfx.cpp">
@@ -239,6 +240,7 @@
     <ClInclude Include="Mat4.h" />
     <ClInclude Include="MaterialDlg.h" />
     <ClInclude Include="MouseSensitivityDialog.h" />
+    <ClInclude Include="ObjectSelectionDialog.h" />
     <ClInclude Include="PngWrapper.h" />
     <ClInclude Include="GraphicPolygon.h" />
     <ClInclude Include="Resource.h" />

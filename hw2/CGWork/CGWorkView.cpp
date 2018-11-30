@@ -12,6 +12,7 @@ using std::endl;
 #include "LightDialog.h"
 #include "MaterialDlg.h"
 #include "MouseSensitivityDialog.h"
+#include "ObjectSelectionDialog.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -83,13 +84,14 @@ ON_WM_TIMER()
 ON_WM_KEYUP()
 ON_WM_KEYDOWN()
 ON_WM_MOUSEMOVE()
-ON_COMMAND(ID_OPTIONS_WIREFRAMECOLOR,OnOptionsWireframecolor)
+ON_COMMAND(ID_OPTIONS_WIREFRAMECOLOR, OnOptionsWireframecolor)
 ON_COMMAND(ID_OPTIONS_NORMALSCOLOR, OnOptionsNormalscolor)
 ON_COMMAND(ID_OPTIONS_BACKGROUNDCOLOR, OnOptionsBackgroundcolor)
 ON_UPDATE_COMMAND_UI(ID_ACTION_VIEW, &CCGWorkView::OnUpdateActionView)
 ON_UPDATE_COMMAND_UI(ID_ACTION_OBJECT, &CCGWorkView::OnUpdateActionObject)
 ON_COMMAND(ID_ACTION_VIEW, &CCGWorkView::OnActionView)
 ON_COMMAND(ID_ACTION_OBJECT, &CCGWorkView::OnActionObject)
+ON_COMMAND(ID_ACTION_SELECTEDOBJECT, &CCGWorkView::OnActionSelectedobject)
 END_MESSAGE_MAP()
 
 // A patch to fix GLaux disappearance from VS2005 to VS2008
@@ -127,21 +129,22 @@ CCGWorkView::CCGWorkView()
     mouseSensitivity = 5;
     drawBoundingBox = false;
     lastCursorLocation = CPoint();
-    thetaX = 0;
-    thetaY = 0;
-    thetaZ = 0;
-    scaleX = 0.14;
-    scaleY = 0.14;
-    scaleZ = 0.14;
-    translateX = 0;
-    translateY = 0;
-    translateZ = 0;
+    objIdx = 0;
+    thetaX.push_back(0);
+    thetaY.push_back(0);
+    thetaZ.push_back(0);
+    scaleX.push_back(0.14);
+    scaleY.push_back(0.14);
+    scaleZ.push_back(0.14);
+    translateX.push_back(0);
+    translateY.push_back(0);
+    translateZ.push_back(0);
     wireframeColor = RGB(0, 0, 0);
     useCustomWireframeColor = false;
     normalsColor = RGB(0, 0, 0);
     useCustomNormalsColor = false;
     backgroundColor = RGB(255, 255, 255);
-	object = false;
+    object = false;
 }
 
 CCGWorkView::~CCGWorkView()
@@ -288,43 +291,44 @@ void CCGWorkView::OnDraw(CDC* pDC)
 
     pDCToUse->FillSolidRect(&r, backgroundColor);
 
-    Mat4 rotateX = Mat4(
-        Vec4(1, 0, 0, 0),
-        Vec4(0, cos(thetaX), -sin(thetaX), 0),
-        Vec4(0, sin(thetaX), cos(thetaX), 0),
-        Vec4(0, 0, 0, 1));
-    Mat4 rotateY = Mat4(
-        Vec4(cos(thetaY), 0, sin(thetaY), 0),
-        Vec4(0, 1, 0, 0),
-        Vec4(-sin(thetaY), 0, cos(thetaY), 0),
-        Vec4(0, 0, 0, 1));
-    Mat4 rotateZ = Mat4(
-        Vec4(cos(thetaZ), -sin(thetaZ), 0, 0),
-        Vec4(sin(thetaZ), cos(thetaZ), 0, 0),
-        Vec4(0, 0, 1, 0),
-        Vec4(0, 0, 0, 1));
-    Mat4 scale = Mat4(
-        Vec4(scaleX, 0, 0, 0),
-        Vec4(0, scaleY, 0, 0),
-        Vec4(0, 0, scaleZ, 0),
-        Vec4(0, 0, 0, 1));
-    Mat4 translate = Mat4(
-        Vec4(1, 0, 0, translateX),
-        Vec4(0, 1, 0, translateY),
-        Vec4(0, 0, 1, translateZ),
-        Vec4(0, 0, 0, 1));
-	Mat4 t;
-	if (object) {
-		t = screen * translate * scale * rotateZ * rotateY * rotateX;
-	}
-	else {
-		t = screen * translate * scale * rotateX * rotateY * rotateZ;
-	}
-    for (GraphicObject o : graphicObjects) {
-        COLORREF objectColor = useCustomWireframeColor ? wireframeColor : RGB(o.red, o.green, o.blue); 
+    for (size_t i = 0; i < graphicObjects.size(); i++) {
+        Mat4 rotateX = Mat4(
+            Vec4(1, 0, 0, 0),
+            Vec4(0, cos(thetaX[i]), -sin(thetaX[i]), 0),
+            Vec4(0, sin(thetaX[i]), cos(thetaX[i]), 0),
+            Vec4(0, 0, 0, 1));
+        Mat4 rotateY = Mat4(
+            Vec4(cos(thetaY[i]), 0, sin(thetaY[i]), 0),
+            Vec4(0, 1, 0, 0),
+            Vec4(-sin(thetaY[i]), 0, cos(thetaY[i]), 0),
+            Vec4(0, 0, 0, 1));
+        Mat4 rotateZ = Mat4(
+            Vec4(cos(thetaZ[i]), -sin(thetaZ[i]), 0, 0),
+            Vec4(sin(thetaZ[i]), cos(thetaZ[i]), 0, 0),
+            Vec4(0, 0, 1, 0),
+            Vec4(0, 0, 0, 1));
+        Mat4 scale = Mat4(
+            Vec4(scaleX[i], 0, 0, 0),
+            Vec4(0, scaleY[i], 0, 0),
+            Vec4(0, 0, scaleZ[i], 0),
+            Vec4(0, 0, 0, 1));
+        Mat4 translate = Mat4(
+            Vec4(1, 0, 0, translateX[i]),
+            Vec4(0, 1, 0, translateY[i]),
+            Vec4(0, 0, 1, translateZ[i]),
+            Vec4(0, 0, 0, 1));
+        Mat4 t;
+        if (object) {
+            t = screen * translate * scale * rotateZ * rotateY * rotateX;
+        } else {
+            t = screen * translate * scale * rotateX * rotateY * rotateZ;
+        }
+        GraphicObject o = graphicObjects[i];
+
+        COLORREF objectColor = useCustomWireframeColor ? wireframeColor : RGB(o.red, o.green, o.blue);
         COLORREF normalColor = useCustomNormalsColor ? normalsColor : RGB(o.red, o.green, o.blue);
 
-        for (GraphicPolygon p : o.polygons) {   
+        for (GraphicPolygon p : o.polygons) {
             // Draw the edges of the polygon:
             for (Edge e : p.edges) {
                 Vec4 start = t * e.start;
@@ -333,8 +337,8 @@ void CCGWorkView::OnDraw(CDC* pDC)
             }
 
             // Draw the normals of the polygon:
-            Vec4 normal, v0, v1, start, end,direction;
-			double direction_length;
+            Vec4 normal, v0, v1, start, end, direction;
+            double direction_length;
             switch (drawNormals) {
             case ID_NORMAL_POLYGONS_CALCULATED:
                 v0 = p.edges[0].end - p.edges[0].start;
@@ -342,10 +346,10 @@ void CCGWorkView::OnDraw(CDC* pDC)
                 normal = v0.cross(v1).normalize();
                 start = t * p.center;
                 end = t * (p.center - normal);
-				direction = end - start;
-				direction_length = sqrt(pow(direction.x, 2) + pow(direction.y, 2) + pow(direction.z, 2));
-				direction = Vec4(direction.x / direction_length, direction.y / direction_length, direction.z / direction_length, 1);
-                drawLine(start, start+direction*20, normalColor, pDCToUse);
+                direction = end - start;
+                direction_length = sqrt(pow(direction.x, 2) + pow(direction.y, 2) + pow(direction.z, 2));
+                direction = Vec4(direction.x / direction_length, direction.y / direction_length, direction.z / direction_length, 1);
+                drawLine(start, start + direction * 20, normalColor, pDCToUse);
                 break;
             case ID_NORMAL_POLYGONS_GIVEN:
                 normal = p.normal;
@@ -417,7 +421,29 @@ void CCGWorkView::OnFileLoad()
         CGSkelProcessIritDataFiles(m_strItdFileName, 1);
         // Open the file and read it.
         // Your code here...
-        
+
+        thetaX.clear();
+        thetaY.clear();
+        thetaZ.clear();
+        scaleX.clear();
+        scaleY.clear();
+        scaleZ.clear();
+        translateX.clear();
+        translateY.clear();
+        translateZ.clear();
+        for (GraphicObject o : graphicObjects) {
+            thetaX.push_back(0);
+            thetaY.push_back(0);
+            thetaZ.push_back(0);
+            scaleX.push_back(0.14);
+            scaleY.push_back(0.14);
+            scaleZ.push_back(0.14);
+            translateX.push_back(0);
+            translateY.push_back(0);
+            translateZ.push_back(0);
+        }
+        objIdx = graphicObjects.size(); // Default to selecting all objects.
+
         Invalidate(); // force a WM_PAINT for drawing.
     }
 }
@@ -613,64 +639,78 @@ void CCGWorkView::Transform(CPoint diff)
 {
     double dx = double(diff.x * mouseSensitivity) / 1000;
     double dy = double(-diff.y * mouseSensitivity) / 1000;
+
+    if (objIdx == graphicObjects.size()) {
+        // Transform all objects.
+        for (int i = 0; i < objIdx; i++) {
+            Transform(i, dx, dy);
+        }
+    } else {
+        Transform(objIdx, dx, dy);
+    }
+    Invalidate();
+}
+
+
+// i == the index of the object to transform.
+void CCGWorkView::Transform(int i, double dx, double dy) {
     switch (m_nAxis) {
     case ID_AXIS_X:
         switch (m_nAction) {
         case ID_ACTION_ROTATE:
-            thetaX += dx;
+            thetaX[i] += dx;
             break;
         case ID_ACTION_SCALE:
-            scaleX = max(0.1, scaleX + dx);
+            scaleX[i] = max(0.1, scaleX[i] + dx);
             break;
         case ID_ACTION_TRANSLATE:
-            translateX += dx;
+            translateX[i] += dx;
             break;
         }
         break;
     case ID_AXIS_Y:
         switch (m_nAction) {
         case ID_ACTION_ROTATE:
-            thetaY += dx;
+            thetaY[i] += dx;
             break;
         case ID_ACTION_SCALE:
-            scaleY = max(0.1, scaleY + dx);
+            scaleY[i] = max(0.1, scaleY[i] + dx);
             break;
         case ID_ACTION_TRANSLATE:
-            translateY += dx;
+            translateY[i] += dx;
             break;
         }
         break;
     case ID_AXIS_Z:
         switch (m_nAction) {
         case ID_ACTION_ROTATE:
-            thetaZ += dx;
+            thetaZ[i] += dx;
             break;
         case ID_ACTION_SCALE:
-            scaleZ = max(0.1, scaleZ + dx);
+            scaleZ[i] = max(0.1, scaleZ[i] + dx);
             break;
         case ID_ACTION_TRANSLATE:
-            translateZ += dx;
+            translateZ[i] += dx;
             break;
         }
         break;
     case ID_AXIS_XY:
         switch (m_nAction) {
         case ID_ACTION_ROTATE:
-            thetaX += dy;
-            thetaY += dx;
+            thetaX[i] += dy;
+            thetaY[i] += dx;
             break;
         case ID_ACTION_SCALE:
-            scaleX = max(0.1, scaleX + dx);
-            scaleY = max(0.1, scaleY + dy);
+            scaleX[i] = max(0.1, scaleX[i] + dx);
+            scaleY[i] = max(0.1, scaleY[i] + dy);
             break;
         case ID_ACTION_TRANSLATE:
-            translateX += dx;
-            translateY += dy;
+            translateX[i] += dx;
+            translateY[i] += dy;
             break;
         }
         break;
     }
-    Invalidate();
 }
 
 void CCGWorkView::OnOptionsMousesensitivity()
@@ -715,7 +755,6 @@ void CCGWorkView::OnNormalPolygonsGiven()
     drawNormals = ID_NORMAL_POLYGONS_GIVEN;
 }
 
-
 void CCGWorkView::OnUpdateNormalVerticesCalculated(CCmdUI* pCmdUI)
 {
     pCmdUI->SetCheck(drawNormals == ID_NORMAL_VERTICES_CALCULATED);
@@ -748,50 +787,46 @@ void CCGWorkView::OnNormalNone()
     drawNormals = ID_NORMALS_NONE;
 }
 
-
 void CCGWorkView::drawLine(Vec4& start, Vec4& end, COLORREF color, CDC* dc)
 {
-	int x1 = start.x;
-	int y1 = start.y;
-	int x2 = end.x;
-	int y2 = end.y;
-	int x = x1;
-	int y = y1;
-	int dx = x2 - x1 > 0 ? x2 - x1 : x1 - x2;
-	int dy = y2 - y1 > 0 ? y2 - y1 : y1 - y2;
-	int s1 = x2 > x1 ? 1 : -1;
-	int s2 = y2 > y1 ? 1 : -1;
-	int change = 0;
-		if (dy > dx) {
-			int tmp = dx;
-			dx = dy;
-			dy = tmp;
-			change = 1;
-		}
-		else {
-			change = 0;
-		}
-		int ne = 2 * dy - dx;
-		int a = 2 * dy;
-		int b = 2 * dy - 2 * dx;
-		dc->SetPixel(x, y, color);
-		for (int i = 1; i <= dx; i++) {
-			if (ne < 0) {
-				if (change == 1) {
-					y = y + s2;
-				}
-				else {
-					x = x + s1;
-				}
-				ne = ne + a;
-			}
-			else {
-				y = y + s2;
-				x = x + s1;
-				ne = ne + b;
-			}
-		dc->SetPixel(x, y, color);
-	}
+    int x1 = start.x;
+    int y1 = start.y;
+    int x2 = end.x;
+    int y2 = end.y;
+    int x = x1;
+    int y = y1;
+    int dx = x2 - x1 > 0 ? x2 - x1 : x1 - x2;
+    int dy = y2 - y1 > 0 ? y2 - y1 : y1 - y2;
+    int s1 = x2 > x1 ? 1 : -1;
+    int s2 = y2 > y1 ? 1 : -1;
+    int change = 0;
+    if (dy > dx) {
+        int tmp = dx;
+        dx = dy;
+        dy = tmp;
+        change = 1;
+    } else {
+        change = 0;
+    }
+    int ne = 2 * dy - dx;
+    int a = 2 * dy;
+    int b = 2 * dy - 2 * dx;
+    dc->SetPixel(x, y, color);
+    for (int i = 1; i <= dx; i++) {
+        if (ne < 0) {
+            if (change == 1) {
+                y = y + s2;
+            } else {
+                x = x + s1;
+            }
+            ne = ne + a;
+        } else {
+            y = y + s2;
+            x = x + s1;
+            ne = ne + b;
+        }
+        dc->SetPixel(x, y, color);
+    }
 }
 
 void CCGWorkView::OnOptionsWireframecolor()
@@ -829,30 +864,36 @@ void CCGWorkView::OnOptionsBackgroundcolor()
     }
 }
 
-
-void CCGWorkView::OnUpdateActionView(CCmdUI *pCmdUI)
+void CCGWorkView::OnUpdateActionView(CCmdUI* pCmdUI)
 {
-	// TODO: Add your command update UI handler code here
-	pCmdUI->SetCheck(!object);
+    // TODO: Add your command update UI handler code here
+    pCmdUI->SetCheck(!object);
 }
 
-
-void CCGWorkView::OnUpdateActionObject(CCmdUI *pCmdUI)
+void CCGWorkView::OnUpdateActionObject(CCmdUI* pCmdUI)
 {
-	// TODO: Add your command update UI handler code here
-	pCmdUI->SetCheck(object);
+    // TODO: Add your command update UI handler code here
+    pCmdUI->SetCheck(object);
 }
-
 
 void CCGWorkView::OnActionView()
 {
-	// TODO: Add your command handler code here
-	object = false;
+    // TODO: Add your command handler code here
+    object = false;
 }
-
 
 void CCGWorkView::OnActionObject()
 {
-	// TODO: Add your command handler code here
-	object = true;
+    // TODO: Add your command handler code here
+    object = true;
+}
+
+void CCGWorkView::OnActionSelectedobject()
+{
+    ObjectSelectionDialog dlg;
+    dlg.setIndex(objIdx);
+    dlg.setMaxIndex(graphicObjects.size());
+    if (dlg.DoModal() == IDOK) {
+        objIdx = dlg.getIndex();
+    }
 }

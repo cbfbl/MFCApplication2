@@ -16,6 +16,8 @@
 #include "Mat4.h"
 
 #include "Light.h"
+#include <vector>
+using std::vector;
 
 
 class CCGWorkView : public CView
@@ -53,15 +55,15 @@ private:
     int drawNormals;
     CPoint lastCursorLocation;
     Mat4 screen;
-    double thetaX;
-    double thetaY;
-    double thetaZ;
-    double scaleX;
-    double scaleY;
-    double scaleZ;
-    double translateX;
-    double translateY;
-    double translateZ;
+    vector<double> thetaX;
+    vector<double> thetaY;
+    vector<double> thetaZ;
+    vector<double> scaleX;
+    vector<double> scaleY;
+    vector<double> scaleZ;
+    vector<double> translateX;
+    vector<double> translateY;
+    vector<double> translateZ;
     double projection_d;
     COLORREF wireframeColor;
     bool useCustomWireframeColor;
@@ -70,8 +72,10 @@ private:
     COLORREF backgroundColor;
     int mouseSensitivity;
 	bool object;
+    int objIdx;
 
     void Transform(CPoint diff);
+    void Transform(int i, double dx, double dy);
     void drawLine(Vec4& start, Vec4& end, COLORREF color, CDC* dc);
 
 // Overrides
@@ -167,6 +171,7 @@ public:
 	afx_msg void OnUpdateActionObject(CCmdUI *pCmdUI);
 	afx_msg void OnActionView();
 	afx_msg void OnActionObject();
+        afx_msg void OnActionSelectedobject();
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp

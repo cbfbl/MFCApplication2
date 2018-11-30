@@ -4,6 +4,7 @@
 //
 #define IDD_ABOUTBOX                    100
 #define IDD_MouseSensitivityDialog      103
+#define IDD_ObjectSelectionDialog       104
 #define IDR_MAINFRAME                   128
 #define IDR_CGWorkTYPE                  129
 #define IDD_LIGHTS_DLG                  134
@@ -37,6 +38,7 @@
 #define IDC_MATERIAL_SPECULAR           1042
 #define IDC_SLIDER1                     1043
 #define IDC_STATIC_MOUSE_SENSITIVITY    1044
+#define IDC_COMBO1                      1046
 #define ID_FILE_LOAD                    32771
 #define ID_VIEW_ORTHOGRAPHIC            32772
 #define ID_VIEW_PERSPECTIVE             32773
@@ -72,14 +74,17 @@
 #define ID_OPTIONS_BACKGROUNDCOLOR      32817
 #define ID_ACTION_VIEW                  32818
 #define ID_ACTION_OBJECT                32819
+#define ID_ACTION_SELECTEDOBJECT        32820
+#define ID_SELECTEDOBJECT_PLACEHOLDER   32821
+#define ID_ACTION_SELECTEDOBJECT32822   32822
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        142
-#define _APS_NEXT_COMMAND_VALUE         32820
-#define _APS_NEXT_CONTROL_VALUE         1045
-#define _APS_NEXT_SYMED_VALUE           104
+#define _APS_NEXT_RESOURCE_VALUE        147
+#define _APS_NEXT_COMMAND_VALUE         32823
+#define _APS_NEXT_CONTROL_VALUE         1047
+#define _APS_NEXT_SYMED_VALUE           105
 #endif
 #endif
