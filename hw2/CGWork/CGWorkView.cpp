@@ -13,6 +13,7 @@ using std::endl;
 #include "MaterialDlg.h"
 #include "MouseSensitivityDialog.h"
 #include "ObjectSelectionDialog.h"
+#include "FineNessDialog.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -92,6 +93,7 @@ ON_UPDATE_COMMAND_UI(ID_ACTION_OBJECT, &CCGWorkView::OnUpdateActionObject)
 ON_COMMAND(ID_ACTION_VIEW, &CCGWorkView::OnActionView)
 ON_COMMAND(ID_ACTION_OBJECT, &CCGWorkView::OnActionObject)
 ON_COMMAND(ID_ACTION_SELECTEDOBJECT, &CCGWorkView::OnActionSelectedobject)
+ON_COMMAND(ID_OPTIONS_FINENESS, &CCGWorkView::OnOptionsFineness)
 END_MESSAGE_MAP()
 
 // A patch to fix GLaux disappearance from VS2005 to VS2008
@@ -338,7 +340,6 @@ void CCGWorkView::OnDraw(CDC* pDC)
 
             // Draw the normals of the polygon:
             Vec4 normal, v0, v1, start, end, direction;
-            double direction_length;
             switch (drawNormals) {
             case ID_NORMAL_POLYGONS_CALCULATED:
                 v0 = p.edges[0].end - p.edges[0].start;
@@ -346,10 +347,6 @@ void CCGWorkView::OnDraw(CDC* pDC)
                 normal = v0.cross(v1).normalize();
                 start = t * p.center;
                 end = t * (p.center - normal);
-                //direction = end - start;
-                //direction_length = sqrt(pow(direction.x, 2) + pow(direction.y, 2) + pow(direction.z, 2));
-                //direction = Vec4(direction.x / direction_length, direction.y / direction_length, direction.z / direction_length, 1);
-                //drawLine(start, start + direction * 20, normalColor, pDCToUse);
                 drawLine(start, end, normalColor, pDCToUse);
                 break;
             case ID_NORMAL_POLYGONS_GIVEN:
@@ -896,5 +893,17 @@ void CCGWorkView::OnActionSelectedobject()
     dlg.setMaxIndex(graphicObjects.size());
     if (dlg.DoModal() == IDOK) {
         objIdx = dlg.getIndex();
+    }
+}
+
+void CCGWorkView::OnOptionsFineness()
+{
+    FineNessDialog dlg;
+    dlg.setFineNess(getFineNess());
+    if (dlg.DoModal() == IDOK) {
+        setFineNess(dlg.getFineNess());
+        graphicObjects.clear();
+        CGSkelProcessIritDataFiles(m_strItdFileName, 1);
+        Invalidate();
     }
 }

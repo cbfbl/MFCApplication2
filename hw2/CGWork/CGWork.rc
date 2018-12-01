@@ -118,6 +118,7 @@ BEGIN
         MENUITEM "Wireframe Color...",          ID_OPTIONS_WIREFRAMECOLOR
         MENUITEM "Normals Color...",            ID_OPTIONS_NORMALSCOLOR
         MENUITEM "Background Color...",         ID_OPTIONS_BACKGROUNDCOLOR
+        MENUITEM "FineNess...",                 ID_OPTIONS_FINENESS
     END
     POPUP "&Light"
     BEGIN
@@ -269,6 +270,17 @@ BEGIN
     COMBOBOX        IDC_COMBO1,58,33,61,149,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
 END
 
+IDD_FineNessDialog DIALOGEX 0, 0, 320, 200
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "FineNess Dialog"
+FONT 8, "MS Shell Dlg", 0, 0, 0x0
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,209,179,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,263,179,50,14
+    CONTROL         "",IDC_SLIDER_FINENESS,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,19,48,100,15
+    LTEXT           "Static",IDC_STATIC_FINENESS,139,52,19,8
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -355,6 +367,14 @@ BEGIN
         TOPMARGIN, 7
         BOTTOMMARGIN, 193
     END
+
+    IDD_FineNessDialog, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 313
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 193
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -391,6 +411,11 @@ BEGIN
 END
 
 IDD_ObjectSelectionDialog AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_FineNessDialog AFX_DIALOG_LAYOUT
 BEGIN
     0
 END

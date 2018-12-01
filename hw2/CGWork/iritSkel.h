@@ -30,4 +30,7 @@ int CGSkelGetObjectTransp(IPObjectStruct *PObj, double *Transp);
 
 bool CGSkelStoreData(IPObjectStruct *PObj);
 
+void setFineNess(int fineNess);
+int getFineNess();
+
 #endif // IRIT_SKEL_H

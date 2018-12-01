@@ -172,6 +172,7 @@ public:
 	afx_msg void OnActionView();
 	afx_msg void OnActionObject();
         afx_msg void OnActionSelectedobject();
+        afx_msg void OnOptionsFineness();
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp
