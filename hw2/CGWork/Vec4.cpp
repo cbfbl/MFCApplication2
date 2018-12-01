@@ -48,8 +48,8 @@ Vec4 Vec4::cross(const Vec4& rhs) const
 
 Vec4 Vec4::normalize() const
 {
-    double sum = x + y + z;
-    return Vec4(x / sum, y / sum, z / sum, w);
+    double norm = sqrt(x*x+y*y+z*z);
+    return Vec4(x / norm, y / norm, z / norm, w);
 }
 
 

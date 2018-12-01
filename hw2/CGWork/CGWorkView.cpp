@@ -346,10 +346,11 @@ void CCGWorkView::OnDraw(CDC* pDC)
                 normal = v0.cross(v1).normalize();
                 start = t * p.center;
                 end = t * (p.center - normal);
-                direction = end - start;
-                direction_length = sqrt(pow(direction.x, 2) + pow(direction.y, 2) + pow(direction.z, 2));
-                direction = Vec4(direction.x / direction_length, direction.y / direction_length, direction.z / direction_length, 1);
-                drawLine(start, start + direction * 20, normalColor, pDCToUse);
+                //direction = end - start;
+                //direction_length = sqrt(pow(direction.x, 2) + pow(direction.y, 2) + pow(direction.z, 2));
+                //direction = Vec4(direction.x / direction_length, direction.y / direction_length, direction.z / direction_length, 1);
+                //drawLine(start, start + direction * 20, normalColor, pDCToUse);
+                drawLine(start, end, normalColor, pDCToUse);
                 break;
             case ID_NORMAL_POLYGONS_GIVEN:
                 normal = p.normal;
