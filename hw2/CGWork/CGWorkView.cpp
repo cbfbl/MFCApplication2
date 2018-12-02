@@ -387,6 +387,14 @@ void CCGWorkView::OnDraw(CDC* pDC)
             case ID_NORMAL_VERTICES_CALCULATED:
                 break;
             case ID_NORMAL_VERTICES_GIVEN:
+                for (Edge e : p.edges) {
+                    if (!(e.start.normalX == 0 && e.start.normalY == 0 && e.start.normalZ == 0)) {
+                        normal = Vec4(e.start.normalX, e.start.normalY, e.start.normalZ, 0);
+                        start = t * e.start;
+                        end = start + (t * normal);
+                        drawLine(start, end, normalColor, pDCToUse);   
+                    }
+                }
                 break;
             default:
                 break;

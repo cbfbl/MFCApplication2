@@ -7,6 +7,9 @@ Vec4::Vec4(double x, double y, double z, double w)
     , y(y)
     , z(z)
     , w(w)
+    , normalX(0)
+    , normalY(0)
+    , normalZ(0)
 {
 }
 Vec4::~Vec4()

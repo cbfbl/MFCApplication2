@@ -12,6 +12,10 @@ public:
     double z;
     double w;
 
+    double normalX;
+    double normalY;
+    double normalZ;
+
     Vec4 operator+(const Vec4& rhs) const;
     Vec4 operator-(const Vec4& rhs) const;
 

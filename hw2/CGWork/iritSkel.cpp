@@ -204,6 +204,12 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
                 PVertex->Coord[2] / vsize,
                 1);
 
+            if (IP_HAS_NORMAL_VRTX(PVertex)) {
+                start.normalX = PVertex->Normal[0];
+                start.normalY = PVertex->Normal[1];
+                start.normalZ = PVertex->Normal[2];
+            }
+
             PVertex = PVertex->Pnext;
             if (PVertex == NULL) {
                 // We connect the last vertex with the first vertex in order to close the polygon.
@@ -259,25 +265,28 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
             
 		/* use if(IP_HAS_PLANE_POLY(PPolygon)) to know whether a normal is defined for the polygon
 			access the normal by the first 3 components of PPolygon->Plane */
-		PVertex = PPolygon -> PVertex;
-		do {			     /* Assume at least one edge in polygon! */
-			/* code handeling all vertex/normal/texture coords */
-			if(IP_HAS_NORMAL_VRTX(PVertex)) 
-			{
-				int x = 0;
-				++x;
-                poly.normal = Vec4(
-                    PPolygon->Plane[0],
-                    PPolygon->Plane[1],
-                    PPolygon->Plane[2],
-                    0
-                );
-			}
+		//PVertex = PPolygon -> PVertex;
+		//do {			     /* Assume at least one edge in polygon! */
+		//	/* code handeling all vertex/normal/texture coords */
+		//	if(IP_HAS_NORMAL_VRTX(PVertex)) 
+		//	{
+		//		int x = 0;
+		//		++x;
+  //              
+		//	}
 
 
-			PVertex = PVertex -> Pnext;
-		}
-		while (PVertex != PPolygon -> PVertex && PVertex != NULL);
+		//	PVertex = PVertex -> Pnext;
+		//}
+		//while (PVertex != PPolygon -> PVertex && PVertex != NULL);
+
+        if (IP_HAS_PLANE_POLY(PPolygon) != 0) {
+            poly.normal = Vec4(
+                PPolygon->Plane[0],
+                PPolygon->Plane[1],
+                PPolygon->Plane[2],
+                0);
+        }
 		/* Close the polygon. */
         graphicObject.polygons.push_back(poly);
 	}
