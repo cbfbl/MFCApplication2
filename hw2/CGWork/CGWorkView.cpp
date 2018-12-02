@@ -385,6 +385,16 @@ void CCGWorkView::OnDraw(CDC* pDC)
                 drawLine(start, end, normalColor, pDCToUse);
                 break;
             case ID_NORMAL_VERTICES_CALCULATED:
+                for (Edge e : p.edges) {
+                    vector<int> hashVertex;
+                    hashVertex.push_back((int)(e.start.x * HASH_PRECISION));
+                    hashVertex.push_back((int)(e.start.y * HASH_PRECISION));
+                    hashVertex.push_back((int)(e.start.z * HASH_PRECISION));
+                    normal = vertexNormals[hashVertex];
+                    start = t * e.start;
+                    end = start - (t * normal);
+                    drawLine(start, end, normalColor, pDCToUse);
+                }
                 break;
             case ID_NORMAL_VERTICES_GIVEN:
                 for (Edge e : p.edges) {

@@ -10,6 +10,8 @@
 #include <stdlib.h>
 #include <vector>
 using std::vector;
+#include <map>
+using std::map;
 #include "irit_sm.h"
 #include "iritprsr.h"
 #include "attribut.h"
@@ -19,7 +21,11 @@ using std::vector;
 #include "GraphicObject.h"
 #include "GraphicPolygon.h"
 
+#define HASH_PRECISION 100000
+
 extern vector<GraphicObject> graphicObjects;
+extern map<vector<int>, vector<Vec4>> vertexAdjPolygonNormals;
+extern map<vector<int>, Vec4> vertexNormals;
 
 bool CGSkelProcessIritDataFiles(CString &FileNames, int NumFiles);
 void CGSkelDumpOneTraversedObject(IPObjectStruct *PObj, IrtHmgnMatType Mat, void *Data);

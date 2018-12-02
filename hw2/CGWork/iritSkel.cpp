@@ -32,6 +32,8 @@ IPFreeformConvStateStruct CGSkelFFCState = {
 //CGSkelProcessIritDataFiles(argv + 1, argc - 1);
 
 vector<GraphicObject> graphicObjects;
+map<vector<int>, vector<Vec4>> vertexAdjPolygonNormals;
+map<vector<int>, Vec4> vertexNormals;
 
 void setFineNess(int fineNess)
 {
@@ -210,6 +212,17 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
                 start.normalZ = PVertex->Normal[2];
             }
 
+            vector<int> hashVertex;
+            hashVertex.push_back((int)(start.x * HASH_PRECISION));
+            hashVertex.push_back((int)(start.y * HASH_PRECISION));
+            hashVertex.push_back((int)(start.z * HASH_PRECISION));
+            Vec4 hashPolygonNormal = Vec4(
+                PPolygon->Plane[0],
+                PPolygon->Plane[1],
+                PPolygon->Plane[2],
+                0);
+            vertexAdjPolygonNormals[hashVertex].push_back(hashPolygonNormal);
+
             PVertex = PVertex->Pnext;
             if (PVertex == NULL) {
                 // We connect the last vertex with the first vertex in order to close the polygon.
@@ -261,25 +274,6 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 
         poly.center = Vec4(sumX / vertexCount, sumY / vertexCount, sumZ / vertexCount, 1);
 
-
-            
-		/* use if(IP_HAS_PLANE_POLY(PPolygon)) to know whether a normal is defined for the polygon
-			access the normal by the first 3 components of PPolygon->Plane */
-		//PVertex = PPolygon -> PVertex;
-		//do {			     /* Assume at least one edge in polygon! */
-		//	/* code handeling all vertex/normal/texture coords */
-		//	if(IP_HAS_NORMAL_VRTX(PVertex)) 
-		//	{
-		//		int x = 0;
-		//		++x;
-  //              
-		//	}
-
-
-		//	PVertex = PVertex -> Pnext;
-		//}
-		//while (PVertex != PPolygon -> PVertex && PVertex != NULL);
-
         if (IP_HAS_PLANE_POLY(PPolygon) != 0) {
             poly.normal = Vec4(
                 PPolygon->Plane[0],
@@ -307,8 +301,18 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
     graphicObject.boundingBox.push_back(Edge(Vec4(minX, maxY, minZ, 1), Vec4(minX, maxY, maxZ, 1)));
     graphicObject.boundingBox.push_back(Edge(Vec4(maxX, maxY, minZ, 1), Vec4(maxX, maxY, maxZ, 1)));
     
-
     graphicObjects.push_back(graphicObject);
+
+    map<vector<int>, vector<Vec4>>::iterator it;
+    for (it = vertexAdjPolygonNormals.begin(); it != vertexAdjPolygonNormals.end(); it++) {
+        Vec4 vnorm = Vec4(0, 0, 0, 0);
+        for (Vec4 v : it->second) {
+            vnorm = vnorm + v;
+        }
+        vnorm = vnorm * (1.0 / it->second.size());
+        vertexNormals[it->first] = vnorm;
+    }
+    //vertexNormals
 	/* Close the object. */
 	return true;
 }
