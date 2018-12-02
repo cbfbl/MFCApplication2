@@ -14,6 +14,7 @@ using std::endl;
 #include "MouseSensitivityDialog.h"
 #include "ObjectSelectionDialog.h"
 #include "FineNessDialog.h"
+#include "PerspectiveCtrlDLG.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -94,6 +95,7 @@ ON_COMMAND(ID_ACTION_VIEW, &CCGWorkView::OnActionView)
 ON_COMMAND(ID_ACTION_OBJECT, &CCGWorkView::OnActionObject)
 ON_COMMAND(ID_ACTION_SELECTEDOBJECT, &CCGWorkView::OnActionSelectedobject)
 ON_COMMAND(ID_OPTIONS_FINENESS, &CCGWorkView::OnOptionsFineness)
+ON_COMMAND(ID_OPTIONS_PERSPECTIVECONTROL32824, &CCGWorkView::OnOptionsPerspectivecontrol32824)
 END_MESSAGE_MAP()
 
 // A patch to fix GLaux disappearance from VS2005 to VS2008
@@ -147,6 +149,8 @@ CCGWorkView::CCGWorkView()
     useCustomNormalsColor = false;
     backgroundColor = RGB(255, 255, 255);
     object = false;
+	d = 2.71828;
+	a = 1;
 }
 
 CCGWorkView::~CCGWorkView()
@@ -319,8 +323,6 @@ void CCGWorkView::OnDraw(CDC* pDC)
             Vec4(0, 1, 0, translateY[i]),
             Vec4(0, 0, 1, translateZ[i]),
             Vec4(0, 0, 0, 1));
-		double d = 2.71828;
-		double a = 1;
 		Mat4 perspective = Mat4(
 			Vec4(1, 0, 0, 0),
 			Vec4(0, 1, 0, 0),
@@ -330,11 +332,6 @@ void CCGWorkView::OnDraw(CDC* pDC)
 			Vec4(1, 0, 0, 0),
 			Vec4(0, 1, 0, 0),
 			Vec4(0, 0, 1, 3.14),
-			Vec4(0, 0, 0, 1));
-		Mat4 translateZInitBack = Mat4(
-			Vec4(1, 0, 0, 0),
-			Vec4(0, 1, 0, 0),
-			Vec4(0, 0, 1, -3.14),
 			Vec4(0, 0, 0, 1));
 		Mat4 t;
 		if (!m_bIsPerspective) {
@@ -938,4 +935,19 @@ void CCGWorkView::OnOptionsFineness()
         CGSkelProcessIritDataFiles(m_strItdFileName, 1);
         Invalidate();
     }
+}
+
+
+void CCGWorkView::OnOptionsPerspectivecontrol32824()
+{
+	// TODO: Add your command handler code here
+	PerspectiveCtrlDLG dlg;
+	dlg.m_a = a;
+	dlg.m_d = d;
+	if (dlg.DoModal() == IDOK) {
+		d = dlg.getDValue();
+		a = dlg.getAValue();
+		Invalidate();
+	}
+
 }

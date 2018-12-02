@@ -10,6 +10,7 @@
 #define IDR_CGWorkTYPE                  129
 #define IDD_LIGHTS_DLG                  134
 #define IDD_MATERIAL_DLG                136
+#define IDD_PERSPECTIVE_CONTROL         148
 #define IDC_LIGHT_SPACE                 1010
 #define IDC_RADIO_LIGHT1                1017
 #define IDC_RADIO_LIGHT2                1018
@@ -42,6 +43,8 @@
 #define IDC_COMBO1                      1046
 #define IDC_STATIC_FINENESS             1047
 #define IDC_SLIDER_FINENESS             1048
+#define IDC_EDIT2                       1052
+#define IDC_EDIT3                       1053
 #define ID_FILE_LOAD                    32771
 #define ID_VIEW_ORTHOGRAPHIC            32772
 #define ID_VIEW_PERSPECTIVE             32773
@@ -81,14 +84,15 @@
 #define ID_SELECTEDOBJECT_PLACEHOLDER   32821
 #define ID_ACTION_SELECTEDOBJECT32822   32822
 #define ID_OPTIONS_FINENESS             32823
+#define ID_OPTIONS_PERSPECTIVECONTROL32824 32824
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        148
-#define _APS_NEXT_COMMAND_VALUE         32824
-#define _APS_NEXT_CONTROL_VALUE         1049
+#define _APS_NEXT_RESOURCE_VALUE        150
+#define _APS_NEXT_COMMAND_VALUE         32825
+#define _APS_NEXT_CONTROL_VALUE         1054
 #define _APS_NEXT_SYMED_VALUE           106
 #endif
 #endif

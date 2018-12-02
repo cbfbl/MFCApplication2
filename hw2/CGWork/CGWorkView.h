@@ -73,6 +73,8 @@ private:
     int mouseSensitivity;
 	bool object;
     int objIdx;
+	double d;
+	double a;
 
     void Transform(CPoint diff);
     void Transform(int i, double dx, double dy);
@@ -173,6 +175,7 @@ public:
 	afx_msg void OnActionObject();
         afx_msg void OnActionSelectedobject();
         afx_msg void OnOptionsFineness();
+		afx_msg void OnOptionsPerspectivecontrol32824();
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp
