@@ -319,24 +319,56 @@ void CCGWorkView::OnDraw(CDC* pDC)
             Vec4(0, 1, 0, translateY[i]),
             Vec4(0, 0, 1, translateZ[i]),
             Vec4(0, 0, 0, 1));
-        Mat4 t;
-        if (object) {
-            t = screen * translate * scale * rotateZ * rotateY * rotateX;
-        } else {
-            t = screen * translate * scale * rotateX * rotateY * rotateZ;
-        }
-        GraphicObject o = graphicObjects[i];
+		double d = 2.71828;
+		double a = 1;
+		Mat4 perspective = Mat4(
+			Vec4(1, 0, 0, 0),
+			Vec4(0, 1, 0, 0),
+			Vec4(0, 0, d/(d-a), -a*d/(d-a)),
+			Vec4(0, 0, 1 / d, 0));
+		Mat4 translateZinit = Mat4(
+			Vec4(1, 0, 0, 0),
+			Vec4(0, 1, 0, 0),
+			Vec4(0, 0, 1, 3.14),
+			Vec4(0, 0, 0, 1));
+		Mat4 translateZInitBack = Mat4(
+			Vec4(1, 0, 0, 0),
+			Vec4(0, 1, 0, 0),
+			Vec4(0, 0, 1, -3.14),
+			Vec4(0, 0, 0, 1));
+		Mat4 t;
+		if (!m_bIsPerspective) {
+			perspective = Mat4(
+				Vec4(1, 0, 0, 0),
+				Vec4(0, 1, 0, 0),
+				Vec4(0, 0, 1, 0),
+				Vec4(0, 0, 0, 1));
+			translateZinit = Mat4(
+				Vec4(1, 0, 0, 0),
+				Vec4(0, 1, 0, 0),
+				Vec4(0, 0, 1, 0),
+				Vec4(0, 0, 0, 1));
+		}
+		if (object) {
+			t = screen * perspective * translateZinit * translate * rotateZ * rotateY * rotateX * scale;
+		}
+		else {
+			t = screen * perspective * translateZinit * translate * rotateX * rotateY * rotateZ * scale;
+		}
+		GraphicObject o = graphicObjects[i];
 
-        COLORREF objectColor = useCustomWireframeColor ? wireframeColor : RGB(o.red, o.green, o.blue);
-        COLORREF normalColor = useCustomNormalsColor ? normalsColor : RGB(o.red, o.green, o.blue);
+		COLORREF objectColor = useCustomWireframeColor ? wireframeColor : RGB(o.red, o.green, o.blue);
+		COLORREF normalColor = useCustomNormalsColor ? normalsColor : RGB(o.red, o.green, o.blue);
 
-        for (GraphicPolygon p : o.polygons) {
-            // Draw the edges of the polygon:
-            for (Edge e : p.edges) {
-                Vec4 start = t * e.start;
-                Vec4 end = t * e.end;
-                drawLine(start, end, objectColor, pDCToUse);
-            }
+		for (GraphicPolygon p : o.polygons) {
+			// Draw the edges of the polygon:
+			for (Edge e : p.edges) {
+				Vec4 start = t * e.start;
+				start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
+				Vec4 end = t * e.end;
+				end = Vec4(end.x / end.w, end.y / end.w, end.z / end.w, 1);
+				drawLine(start, end, objectColor, pDCToUse);
+			}
 
             // Draw the normals of the polygon:
             Vec4 normal, v0, v1, start, end, direction;
