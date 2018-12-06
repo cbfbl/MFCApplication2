@@ -23,7 +23,6 @@ static char THIS_FILE[] = __FILE__;
 #endif
 
 #include "PngWrapper.h"
-#include "iritSkel.h"
 
 // For Status Bar access
 #include "MainFrm.h"

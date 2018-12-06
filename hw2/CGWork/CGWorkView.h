@@ -14,6 +14,7 @@
 #include "gl\glu.h"   // Add the utility library
 
 #include "Mat4.h"
+#include "iritSkel.h"
 
 #include "Light.h"
 #include <vector>
