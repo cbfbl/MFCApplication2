@@ -43,6 +43,11 @@ Vec4 Vec4::operator*(const double rhs) const
     return Vec4(x * rhs, y * rhs, z * rhs, w * rhs);
 }
 
+Vec4 Vec4::operator-() const
+{
+    return Vec4(-x, -y, -z, -w);
+}
+
 
 Vec4 Vec4::cross(const Vec4& rhs) const
 {

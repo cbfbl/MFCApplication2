@@ -25,6 +25,8 @@ public:
     double operator*(const Vec4& rhs) const;
     Vec4 operator*(const double rhs) const;
 
+    Vec4 operator-() const;
+
     Vec4 cross(const Vec4& rhs) const;
     Vec4 normalize() const;
 

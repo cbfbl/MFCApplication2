@@ -80,21 +80,23 @@ ON_COMMAND(ID_NORMAL_VERTICES_GIVEN, OnNormalVerticesGiven)
 ON_UPDATE_COMMAND_UI(ID_NORMAL_VERTICES_GIVEN, OnUpdateNormalVerticesGiven)
 ON_COMMAND(ID_NORMALS_NONE, OnNormalNone)
 ON_UPDATE_COMMAND_UI(ID_NORMALS_NONE, OnUpdateNormalNone)
+ON_COMMAND(ID_VIEW_INVERTEDNORMALS, OnInvertedNormals)
+ON_UPDATE_COMMAND_UI(ID_VIEW_INVERTEDNORMALS, OnUpdateInvertedNormals)
+ON_COMMAND(ID_OPTIONS_WIREFRAMECOLOR, OnOptionsWireframecolor)
+ON_COMMAND(ID_OPTIONS_NORMALSCOLOR, OnOptionsNormalscolor)
+ON_COMMAND(ID_OPTIONS_BACKGROUNDCOLOR, OnOptionsBackgroundcolor)
+ON_UPDATE_COMMAND_UI(ID_ACTION_VIEW, OnUpdateActionView)
+ON_UPDATE_COMMAND_UI(ID_ACTION_OBJECT, OnUpdateActionObject)
+ON_COMMAND(ID_ACTION_VIEW, OnActionView)
+ON_COMMAND(ID_ACTION_OBJECT, OnActionObject)
+ON_COMMAND(ID_ACTION_SELECTEDOBJECT, OnActionSelectedobject)
+ON_COMMAND(ID_OPTIONS_FINENESS, OnOptionsFineness)
+ON_COMMAND(ID_OPTIONS_PERSPECTIVECONTROL32824, OnOptionsPerspectivecontrol32824)
 //}}AFX_MSG_MAP
 ON_WM_TIMER()
 ON_WM_KEYUP()
 ON_WM_KEYDOWN()
 ON_WM_MOUSEMOVE()
-ON_COMMAND(ID_OPTIONS_WIREFRAMECOLOR, OnOptionsWireframecolor)
-ON_COMMAND(ID_OPTIONS_NORMALSCOLOR, OnOptionsNormalscolor)
-ON_COMMAND(ID_OPTIONS_BACKGROUNDCOLOR, OnOptionsBackgroundcolor)
-ON_UPDATE_COMMAND_UI(ID_ACTION_VIEW, &CCGWorkView::OnUpdateActionView)
-ON_UPDATE_COMMAND_UI(ID_ACTION_OBJECT, &CCGWorkView::OnUpdateActionObject)
-ON_COMMAND(ID_ACTION_VIEW, &CCGWorkView::OnActionView)
-ON_COMMAND(ID_ACTION_OBJECT, &CCGWorkView::OnActionObject)
-ON_COMMAND(ID_ACTION_SELECTEDOBJECT, &CCGWorkView::OnActionSelectedobject)
-ON_COMMAND(ID_OPTIONS_FINENESS, &CCGWorkView::OnOptionsFineness)
-ON_COMMAND(ID_OPTIONS_PERSPECTIVECONTROL32824, &CCGWorkView::OnOptionsPerspectivecontrol32824)
 END_MESSAGE_MAP()
 
 // A patch to fix GLaux disappearance from VS2005 to VS2008
@@ -150,6 +152,7 @@ CCGWorkView::CCGWorkView()
     object = false;
 	d = 2.71828;
 	a = 1;
+    invertNormals = false;
 }
 
 CCGWorkView::~CCGWorkView()
@@ -373,12 +376,18 @@ void CCGWorkView::OnDraw(CDC* pDC)
                 v0 = p.edges[0].end - p.edges[0].start;
                 v1 = p.edges[1].end - p.edges[1].start;
                 normal = v0.cross(v1).normalize();
+                if (invertNormals) {
+                    normal = -normal;
+                }
                 start = t * p.center;
                 end = t * (p.center - normal);
                 drawLine(start, end, normalColor, pDCToUse);
                 break;
             case ID_NORMAL_POLYGONS_GIVEN:
                 normal = p.normal;
+                if (invertNormals) {
+                    normal = -normal;
+                }
                 start = t * p.center;
                 end = t * (p.center - normal);
                 drawLine(start, end, normalColor, pDCToUse);
@@ -390,6 +399,9 @@ void CCGWorkView::OnDraw(CDC* pDC)
                     hashVertex.push_back((int)(e.start.y * HASH_PRECISION));
                     hashVertex.push_back((int)(e.start.z * HASH_PRECISION));
                     normal = vertexNormals[hashVertex];
+                    if (invertNormals) {
+                        normal = -normal;
+                    }
                     start = t * e.start;
                     end = start - (t * normal);
                     drawLine(start, end, normalColor, pDCToUse);
@@ -399,6 +411,9 @@ void CCGWorkView::OnDraw(CDC* pDC)
                 for (Edge e : p.edges) {
                     if (!(e.start.normalX == 0 && e.start.normalY == 0 && e.start.normalZ == 0)) {
                         normal = Vec4(e.start.normalX, e.start.normalY, e.start.normalZ, 0);
+                        if (invertNormals) {
+                            normal = -normal;
+                        }
                         start = t * e.start;
                         end = start + (t * normal);
                         drawLine(start, end, normalColor, pDCToUse);   
@@ -967,4 +982,15 @@ void CCGWorkView::OnOptionsPerspectivecontrol32824()
 		Invalidate();
 	}
 
+}
+
+void CCGWorkView::OnUpdateInvertedNormals(CCmdUI* pCmdUI)
+{
+    pCmdUI->SetCheck(invertNormals);
+    Invalidate();
+}
+
+void CCGWorkView::OnInvertedNormals()
+{
+    invertNormals = !invertNormals;
 }

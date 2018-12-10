@@ -85,13 +85,14 @@
 #define ID_ACTION_SELECTEDOBJECT32822   32822
 #define ID_OPTIONS_FINENESS             32823
 #define ID_OPTIONS_PERSPECTIVECONTROL32824 32824
+#define ID_VIEW_INVERTEDNORMALS         32825
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        150
-#define _APS_NEXT_COMMAND_VALUE         32825
+#define _APS_NEXT_COMMAND_VALUE         32826
 #define _APS_NEXT_CONTROL_VALUE         1054
 #define _APS_NEXT_SYMED_VALUE           106
 #endif

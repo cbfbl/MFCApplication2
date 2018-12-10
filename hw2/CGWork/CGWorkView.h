@@ -76,6 +76,7 @@ private:
     int objIdx;
 	double d;
 	double a;
+    bool invertNormals;
 
     void Transform(CPoint diff);
     void Transform(int i, double dx, double dy);
@@ -166,6 +167,8 @@ public:
     afx_msg void OnUpdateNormalVerticesGiven(CCmdUI* pCmdUI);
     afx_msg void OnNormalNone();
     afx_msg void OnUpdateNormalNone(CCmdUI* pCmdUI);
+    afx_msg void OnUpdateInvertedNormals(CCmdUI* pCmdUI);
+    afx_msg void OnInvertedNormals();
 
     afx_msg void OnOptionsWireframecolor();
     afx_msg void OnOptionsNormalscolor();
@@ -174,9 +177,9 @@ public:
 	afx_msg void OnUpdateActionObject(CCmdUI *pCmdUI);
 	afx_msg void OnActionView();
 	afx_msg void OnActionObject();
-        afx_msg void OnActionSelectedobject();
-        afx_msg void OnOptionsFineness();
-		afx_msg void OnOptionsPerspectivecontrol32824();
+    afx_msg void OnActionSelectedobject();
+    afx_msg void OnOptionsFineness();
+	afx_msg void OnOptionsPerspectivecontrol32824();
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp

@@ -92,6 +92,7 @@ BEGIN
             MENUITEM "Vertices (Given by model)",   ID_NORMAL_VERTICES_GIVEN
             MENUITEM "None",                        ID_NORMALS_NONE
         END
+        MENUITEM "Inverted Normals",            ID_VIEW_INVERTEDNORMALS
     END
     POPUP "A&ction"
     BEGIN
