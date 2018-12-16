@@ -9,11 +9,11 @@
 #include <iostream>
 using std::cout;
 using std::endl;
+#include "FineNessDialog.h"
 #include "LightDialog.h"
 #include "MaterialDlg.h"
 #include "MouseSensitivityDialog.h"
 #include "ObjectSelectionDialog.h"
-#include "FineNessDialog.h"
 #include "PerspectiveCtrlDLG.h"
 
 #ifdef _DEBUG
@@ -92,6 +92,12 @@ ON_COMMAND(ID_ACTION_OBJECT, OnActionObject)
 ON_COMMAND(ID_ACTION_SELECTEDOBJECT, OnActionSelectedobject)
 ON_COMMAND(ID_OPTIONS_FINENESS, OnOptionsFineness)
 ON_COMMAND(ID_OPTIONS_PERSPECTIVECONTROL32824, OnOptionsPerspectivecontrol32824)
+ON_COMMAND(ID_RENDER_WIREFRAME, OnRenderWireframe)
+ON_UPDATE_COMMAND_UI(ID_RENDER_WIREFRAME, OnUpdateRenderWireframe)
+ON_COMMAND(ID_RENDER_SCREEN, OnRenderScreen)
+ON_UPDATE_COMMAND_UI(ID_RENDER_SCREEN, OnUpdateRenderScreen)
+ON_COMMAND(ID_RENDER_FILE, OnRenderFile)
+ON_UPDATE_COMMAND_UI(ID_RENDER_FILE, OnUpdateRenderFile)
 //}}AFX_MSG_MAP
 ON_WM_TIMER()
 ON_WM_KEYUP()
@@ -150,9 +156,10 @@ CCGWorkView::CCGWorkView()
     useCustomNormalsColor = false;
     backgroundColor = RGB(255, 255, 255);
     object = false;
-	d = 2.71828;
-	a = 1;
+    d = 2.71828;
+    a = 1;
     invertNormals = false;
+    renderScreen = false;
 }
 
 CCGWorkView::~CCGWorkView()
@@ -325,49 +332,111 @@ void CCGWorkView::OnDraw(CDC* pDC)
             Vec4(0, 1, 0, translateY[i]),
             Vec4(0, 0, 1, translateZ[i]),
             Vec4(0, 0, 0, 1));
-		Mat4 perspective = Mat4(
-			Vec4(1, 0, 0, 0),
-			Vec4(0, 1, 0, 0),
-			Vec4(0, 0, d/(d-a), -a*d/(d-a)),
-			Vec4(0, 0, 1 / d, 0));
-		Mat4 translateZinit = Mat4(
-			Vec4(1, 0, 0, 0),
-			Vec4(0, 1, 0, 0),
-			Vec4(0, 0, 1, 3.14),
-			Vec4(0, 0, 0, 1));
-		Mat4 t;
-		if (!m_bIsPerspective) {
-			perspective = Mat4(
-				Vec4(1, 0, 0, 0),
-				Vec4(0, 1, 0, 0),
-				Vec4(0, 0, 1, 0),
-				Vec4(0, 0, 0, 1));
-			translateZinit = Mat4(
-				Vec4(1, 0, 0, 0),
-				Vec4(0, 1, 0, 0),
-				Vec4(0, 0, 1, 0),
-				Vec4(0, 0, 0, 1));
-		}
-		if (object) {
-			t = screen * perspective * translateZinit * translate * rotateZ * rotateY * rotateX * scale;
-		}
-		else {
-			t = screen * perspective * translateZinit * translate * rotateX * rotateY * rotateZ * scale;
-		}
-		GraphicObject o = graphicObjects[i];
+        Mat4 perspective = Mat4(
+            Vec4(1, 0, 0, 0),
+            Vec4(0, 1, 0, 0),
+            Vec4(0, 0, d / (d - a), -a * d / (d - a)),
+            Vec4(0, 0, 1 / d, 0));
+        Mat4 translateZinit = Mat4(
+            Vec4(1, 0, 0, 0),
+            Vec4(0, 1, 0, 0),
+            Vec4(0, 0, 1, 3.14),
+            Vec4(0, 0, 0, 1));
+        Mat4 t;
+        if (!m_bIsPerspective) {
+            perspective = Mat4(
+                Vec4(1, 0, 0, 0),
+                Vec4(0, 1, 0, 0),
+                Vec4(0, 0, 1, 0),
+                Vec4(0, 0, 0, 1));
+            translateZinit = Mat4(
+                Vec4(1, 0, 0, 0),
+                Vec4(0, 1, 0, 0),
+                Vec4(0, 0, 1, 0),
+                Vec4(0, 0, 0, 1));
+        }
+        if (object) {
+            t = screen * perspective * translateZinit * translate * rotateZ * rotateY * rotateX * scale;
+        } else {
+            t = screen * perspective * translateZinit * translate * rotateX * rotateY * rotateZ * scale;
+        }
+        GraphicObject o = graphicObjects[i];
 
-		COLORREF objectColor = useCustomWireframeColor ? wireframeColor : RGB(o.red, o.green, o.blue);
-		COLORREF normalColor = useCustomNormalsColor ? normalsColor : RGB(o.red, o.green, o.blue);
+        COLORREF objectColor = useCustomWireframeColor ? wireframeColor : RGB(o.red, o.green, o.blue);
+        COLORREF normalColor = useCustomNormalsColor ? normalsColor : RGB(o.red, o.green, o.blue);
 
-		for (GraphicPolygon p : o.polygons) {
-			// Draw the edges of the polygon:
-			for (Edge e : p.edges) {
-				Vec4 start = t * e.start;
-				start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
-				Vec4 end = t * e.end;
-				end = Vec4(end.x / end.w, end.y / end.w, end.z / end.w, 1);
-				drawLine(start, end, objectColor, pDCToUse);
-			}
+        for (GraphicPolygon p : o.polygons) {
+            // Draw the edges of the polygon:
+            vector<Edge> projectedEdges;
+            for (Edge e : p.edges) {
+                Vec4 start = t * e.start;
+                start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
+                Vec4 end = t * e.end;
+                end = Vec4(end.x / end.w, end.y / end.w, end.z / end.w, 1);
+
+                if (0 <= start.x && start.x <= m_WindowWidth && 0 <= end.x && end.x <= m_WindowWidth && 
+                    0 <= start.y && start.y <= m_WindowHeight && 0 <= end.y && end.y <= m_WindowHeight) {
+                    drawLine(start, end, objectColor, pDCToUse);
+                    if (renderScreen) {
+                        projectedEdges.push_back(Edge(start, end));
+                    }
+                }
+            }
+
+            if (renderScreen) {
+                // Fill the polygons using scan conversion:
+                vector<Edge> activeEdges;
+                std::sort(projectedEdges.begin(), projectedEdges.end());
+                for (size_t y = 0; y < m_WindowHeight; y++) {
+                    for (Edge e : projectedEdges) {
+                        double eymax = e.ymax();
+                        vector<Edge>::iterator pos = std::find(activeEdges.begin(), activeEdges.end(), e);
+                        if (pos == activeEdges.end() && e.ymin() <= y) {
+                            activeEdges.push_back(e);
+                        } else if (pos != activeEdges.end() && eymax < y) {
+                            activeEdges.erase(pos);
+                        }
+                    }
+                    vector<double> intersections;
+                    for (Edge e : activeEdges) {
+                        if ((e.start.y <= y && y <= e.end.y) || (e.end.y <= y && y <= e.start.y)) {
+                            if (e.end.x == e.start.x) {
+                                intersections.push_back(e.start.x);
+                            } else {
+                                double m = (e.end.y - e.start.y) / (e.end.x - e.start.x);
+                                double x = e.start.x + (y - e.start.y) / m;
+                                if (0 <= x && x < m_WindowWidth) {
+                                    intersections.push_back(x);
+                                }
+                            }
+                        }
+                    }
+                    std::sort(intersections.begin(), intersections.end());
+                    //vector<Vec4> odds;
+                    //vector<Vec4> evens;
+                    //for (size_t i = 0; i < intersections.size(); i++) {
+                    //    if (i % 2) {
+                    //        odds.push_back(Vec4(intersections[i], y, 0, 1));
+                    //    } else {
+                    //        evens.push_back(Vec4(intersections[i], y, 0, 1));
+                    //    }
+                    //}
+                    //for (size_t i = 0; i < odds.size(); i++) {
+                    //    drawLine(odds[i], evens[i], objectColor, pDCToUse);
+                    //}
+                    int prevX = 0;
+                    bool inside = false;
+                    for (int intersectionX : intersections) {
+                        if (inside) {
+                            for (int x = prevX; x < intersectionX; x++) {
+                                pDCToUse->SetPixel(x, y, objectColor);
+                            }
+                        }
+                        prevX = intersectionX;
+                        inside = !inside;
+                    }
+                }
+            }
 
             // Draw the normals of the polygon:
             Vec4 normal, v0, v1, start, end, direction;
@@ -416,7 +485,7 @@ void CCGWorkView::OnDraw(CDC* pDC)
                         }
                         start = t * e.start;
                         end = start + (t * normal);
-                        drawLine(start, end, normalColor, pDCToUse);   
+                        drawLine(start, end, normalColor, pDCToUse);
                     }
                 }
                 break;
@@ -710,9 +779,9 @@ void CCGWorkView::Transform(CPoint diff)
     Invalidate();
 }
 
-
 // i == the index of the object to transform.
-void CCGWorkView::Transform(int i, double dx, double dy) {
+void CCGWorkView::Transform(int i, double dx, double dy)
+{
     switch (m_nAxis) {
     case ID_AXIS_X:
         switch (m_nAction) {
@@ -969,19 +1038,17 @@ void CCGWorkView::OnOptionsFineness()
     }
 }
 
-
 void CCGWorkView::OnOptionsPerspectivecontrol32824()
 {
-	// TODO: Add your command handler code here
-	PerspectiveCtrlDLG dlg;
-	dlg.m_a = a;
-	dlg.m_d = d;
-	if (dlg.DoModal() == IDOK) {
-		d = dlg.getDValue();
-		a = dlg.getAValue();
-		Invalidate();
-	}
-
+    // TODO: Add your command handler code here
+    PerspectiveCtrlDLG dlg;
+    dlg.m_a = a;
+    dlg.m_d = d;
+    if (dlg.DoModal() == IDOK) {
+        d = dlg.getDValue();
+        a = dlg.getAValue();
+        Invalidate();
+    }
 }
 
 void CCGWorkView::OnUpdateInvertedNormals(CCmdUI* pCmdUI)
@@ -993,4 +1060,34 @@ void CCGWorkView::OnUpdateInvertedNormals(CCmdUI* pCmdUI)
 void CCGWorkView::OnInvertedNormals()
 {
     invertNormals = !invertNormals;
+}
+
+void CCGWorkView::OnUpdateRenderWireframe(CCmdUI* pCmdUI)
+{
+    pCmdUI->SetCheck(!renderScreen);
+    Invalidate();
+}
+
+void CCGWorkView::OnRenderWireframe()
+{
+    renderScreen = false;
+}
+
+void CCGWorkView::OnUpdateRenderScreen(CCmdUI* pCmdUI)
+{
+    pCmdUI->SetCheck(renderScreen);
+    Invalidate();
+}
+
+void CCGWorkView::OnRenderScreen()
+{
+    renderScreen = true;
+}
+
+void CCGWorkView::OnUpdateRenderFile(CCmdUI* pCmdUI)
+{
+}
+
+void CCGWorkView::OnRenderFile()
+{
 }

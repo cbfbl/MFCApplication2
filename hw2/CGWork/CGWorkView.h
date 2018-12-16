@@ -18,6 +18,7 @@
 
 #include "Light.h"
 #include <vector>
+#include <algorithm>
 using std::vector;
 
 
@@ -77,6 +78,7 @@ private:
 	double d;
 	double a;
     bool invertNormals;
+    bool renderScreen;
 
     void Transform(CPoint diff);
     void Transform(int i, double dx, double dy);
@@ -169,6 +171,12 @@ public:
     afx_msg void OnUpdateNormalNone(CCmdUI* pCmdUI);
     afx_msg void OnUpdateInvertedNormals(CCmdUI* pCmdUI);
     afx_msg void OnInvertedNormals();
+    afx_msg void OnUpdateRenderWireframe(CCmdUI* pCmdUI);
+    afx_msg void OnRenderWireframe();
+    afx_msg void OnUpdateRenderScreen(CCmdUI* pCmdUI);
+    afx_msg void OnRenderScreen();
+    afx_msg void OnUpdateRenderFile(CCmdUI* pCmdUI);
+    afx_msg void OnRenderFile();
 
     afx_msg void OnOptionsWireframecolor();
     afx_msg void OnOptionsNormalscolor();

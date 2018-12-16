@@ -131,6 +131,12 @@ BEGIN
         END
         MENUITEM "&Parameters...",              ID_LIGHT_CONSTANTS
     END
+    POPUP "Render"
+    BEGIN
+        MENUITEM "Wireframe",                   ID_RENDER_WIREFRAME
+        MENUITEM "Screen",                      ID_RENDER_SCREEN
+        MENUITEM "File",                        ID_RENDER_FILE
+    END
     POPUP "&Help"
     BEGIN
         MENUITEM "&About CGWork...",            ID_APP_ABOUT
