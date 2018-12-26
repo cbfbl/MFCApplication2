@@ -330,7 +330,6 @@ void CCGWorkView::OnDraw(CDC* pDC)
     CDC* pDCToUse = /*m_pDC*/ m_pDbDC;
 
     pDCToUse->FillSolidRect(&r, backgroundColor);
-
 	RenderScene(m_WindowWidth, m_WindowHeight);
     for (size_t i = 0; i < m_WindowWidth; i++) {
         for (size_t j = 0; j < m_WindowHeight; j++) {
@@ -1216,8 +1215,15 @@ void CCGWorkView::OnRenderFile()
                     png.SetValue(x, y, bg);
                 }
             }
-            //RenderScene(nullptr, &png, width, height);
-            //png.WritePng();
+            RenderScene(width, height);
+            for (size_t i = 0; i < width; i++) {
+                for (size_t j = 0; j < height; j++) {
+                    if (cbuffer[i][j] != backgroundColor) {
+                        png.SetValue(i, j, SET_RGB(GetRValue(cbuffer[i][j]), GetGValue(cbuffer[i][j]), GetBValue(cbuffer[i][j])));
+                    }
+                }
+            }
+            png.WritePng();
             screen = Mat4(oldScreen);
         }
     }
