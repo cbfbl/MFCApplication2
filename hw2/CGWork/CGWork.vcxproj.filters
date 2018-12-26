@@ -72,6 +72,9 @@
     <ClCompile Include="PerspectiveCtrlDLG.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="PngRenderDialog.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="CGWork.rc">
@@ -209,6 +212,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="PerspectiveCtrlDLG.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PngRenderDialog.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -10,6 +10,11 @@ class CMaterialDlg : public CDialog
 public:
 	CMaterialDlg(CWnd* pParent = NULL);   // standard constructor
 	virtual ~CMaterialDlg();
+    void SetDialogData(double ambient, double diffuse, double shininess, int specular);
+	double getAmbient();
+	double getDiffuse();
+	double getShininess();
+	int getSpecular();
 
 // Dialog Data
 	enum { IDD = IDD_MATERIAL_DLG };

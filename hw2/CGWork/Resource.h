@@ -6,6 +6,7 @@
 #define IDD_MouseSensitivityDialog      103
 #define IDD_ObjectSelectionDialog       104
 #define IDD_FineNessDialog              105
+#define IDD_PngRenderDialog             106
 #define IDR_MAINFRAME                   128
 #define IDR_CGWorkTYPE                  129
 #define IDD_LIGHTS_DLG                  134
@@ -35,9 +36,11 @@
 #define IDC_LIGHT_DIR_Z                 1037
 #define IDC_LIGHT_TYPE                  1038
 #define IDC_MATERIAL_AMBIENT            1039
+#define IDC_AMBL_COLOR_I                1039
 #define IDC_MATERIAL_DIFFUSE            1040
 #define IDC_MATERIAL_SHININESS          1041
 #define IDC_MATERIAL_SPECULAR           1042
+#define IDC_SPEC_EXP                    1042
 #define IDC_SLIDER1                     1043
 #define IDC_STATIC_MOUSE_SENSITIVITY    1044
 #define IDC_COMBO1                      1046
@@ -45,6 +48,8 @@
 #define IDC_SLIDER_FINENESS             1048
 #define IDC_EDIT2                       1052
 #define IDC_EDIT3                       1053
+#define IDC_EDIT_WIDTH                  1055
+#define IDC_EDIT_HEIGHT                 1056
 #define ID_FILE_LOAD                    32771
 #define ID_VIEW_ORTHOGRAPHIC            32772
 #define ID_VIEW_PERSPECTIVE             32773
@@ -89,14 +94,25 @@
 #define ID_RENDER_WIREFRAME             32826
 #define ID_RENDER_SCREEN                32827
 #define ID_RENDER_FILE                  32828
+#define ID_LIGHT_MATERIAL               32829
+#define ID_LIGHT_MATERIAL32830          32830
+#define ID_RENDER_BACKFACECULLING       32831
+#define ID_BACKGROUND_LOAD              32832
+#define ID_BACKGROUND_CLEAR             32833
+#define ID_BACKGROUND_STRETCH           32834
+#define ID_BACKGROUND_REPEAT            32835
+#define ID_BG_STRETCH                   32836
+#define ID_BG_REPEAT                    32837
+#define ID_BG_LOAD                      32838
+#define ID_BG_CLEAR                     32839
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        150
-#define _APS_NEXT_COMMAND_VALUE         32829
-#define _APS_NEXT_CONTROL_VALUE         1054
-#define _APS_NEXT_SYMED_VALUE           106
+#define _APS_NEXT_RESOURCE_VALUE        154
+#define _APS_NEXT_COMMAND_VALUE         32840
+#define _APS_NEXT_CONTROL_VALUE         1056
+#define _APS_NEXT_SYMED_VALUE           107
 #endif
 #endif

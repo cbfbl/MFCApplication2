@@ -275,7 +275,7 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
         poly.center = Vec4(sumX / vertexCount, sumY / vertexCount, sumZ / vertexCount, 1);
 
         if (IP_HAS_PLANE_POLY(PPolygon) != 0) {
-            poly.normal = Vec4(
+            poly.normal = -Vec4(
                 PPolygon->Plane[0],
                 PPolygon->Plane[1],
                 PPolygon->Plane[2],
@@ -310,7 +310,7 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
             vnorm = vnorm + v;
         }
         vnorm = vnorm * (1.0 / it->second.size());
-        vertexNormals[it->first] = vnorm;
+        vertexNormals[it->first] = -vnorm;
     }
     //vertexNormals
 	/* Close the object. */

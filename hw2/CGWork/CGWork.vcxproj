@@ -210,6 +210,7 @@
     <ClCompile Include="MouseSensitivityDialog.cpp" />
     <ClCompile Include="ObjectSelectionDialog.cpp" />
     <ClCompile Include="PerspectiveCtrlDLG.cpp" />
+    <ClCompile Include="PngRenderDialog.cpp" />
     <ClCompile Include="PngWrapper.cpp" />
     <ClCompile Include="GraphicPolygon.cpp" />
     <ClCompile Include="StdAfx.cpp">
@@ -245,6 +246,7 @@
     <ClInclude Include="MouseSensitivityDialog.h" />
     <ClInclude Include="ObjectSelectionDialog.h" />
     <ClInclude Include="PerspectiveCtrlDLG.h" />
+    <ClInclude Include="PngRenderDialog.h" />
     <ClInclude Include="PngWrapper.h" />
     <ClInclude Include="GraphicPolygon.h" />
     <ClInclude Include="Resource.h" />

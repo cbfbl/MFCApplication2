@@ -20,6 +20,7 @@
 #include <vector>
 #include <algorithm>
 using std::vector;
+#include "PngWrapper.h"
 
 
 class CCGWorkView : public CView
@@ -79,12 +80,15 @@ private:
 	double a;
     bool invertNormals;
     bool renderScreen;
+    bool cullBackfaces;
+    bool bgStretch;
 	vector<vector<double>> zbuffer;
-	vector<vector<COLORREF>> cbuffer;
+    vector<vector<COLORREF>> cbuffer;
 
     void Transform(CPoint diff);
     void Transform(int i, double dx, double dy);
-    void drawLine(Vec4& start, Vec4& end, COLORREF color, CDC* dc);
+    void drawLine(Vec4& start, Vec4& end, COLORREF color);
+    COLORREF getColorAfterShading(Vec4& point, Vec4& normal, COLORREF color, Mat4& t);
 
 // Overrides
 	// ClassWizard generated virtual function overrides
@@ -108,7 +112,7 @@ protected:
 	BOOL SetupViewingFrustum(void);
 	BOOL SetupViewingOrthoConstAspect(void);
 
-	virtual void RenderScene();
+	virtual void RenderScene(int width, int height);
 
 
 	HGLRC    m_hRC;			// holds the Rendering Context
@@ -149,6 +153,7 @@ protected:
 	afx_msg void OnLightShadingGouraud();
 	afx_msg void OnUpdateLightShadingGouraud(CCmdUI* pCmdUI);
 	afx_msg void OnLightConstants();
+	afx_msg void OnMaterialConstants();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 public:
@@ -179,6 +184,14 @@ public:
     afx_msg void OnRenderScreen();
     afx_msg void OnUpdateRenderFile(CCmdUI* pCmdUI);
     afx_msg void OnRenderFile();
+    afx_msg void OnUpdateBackfaceCulling(CCmdUI* pCmdUI);
+    afx_msg void OnBackfaceCulling();
+    afx_msg void OnUpdateBgStretch(CCmdUI* pCmdUI);
+    afx_msg void OnBgStretch();
+    afx_msg void OnUpdateBgRepeat(CCmdUI* pCmdUI);
+    afx_msg void OnBgRepeat();
+    afx_msg void OnBgLoad();
+    afx_msg void OnBgClear();
 
     afx_msg void OnOptionsWireframecolor();
     afx_msg void OnOptionsNormalscolor();
