@@ -306,6 +306,21 @@ void CCGWorkView::OnDraw(CDC* pDC)
 
     pDCToUse->FillSolidRect(&r, backgroundColor);
 
+	zbuffer = vector<vector<double>>(m_WindowWidth);
+	for (size_t i = 0; i < m_WindowWidth; i++) {
+		zbuffer[i] = vector<double>(m_WindowHeight);
+		for (size_t j = 0; j < m_WindowHeight; j++) {
+			zbuffer[i][j] = DBL_MAX;
+		}
+	}
+	cbuffer = vector<vector<COLORREF>>(m_WindowWidth);
+	for (size_t i = 0; i < m_WindowWidth; i++) {
+		cbuffer[i] = vector<COLORREF>(m_WindowHeight);
+		for (size_t j = 0; j < m_WindowHeight; j++) {
+			cbuffer[i][j] = backgroundColor;
+		}
+	}
+
     for (size_t i = 0; i < graphicObjects.size(); i++) {
         Mat4 rotateX = Mat4(
             Vec4(1, 0, 0, 0),
@@ -364,136 +379,126 @@ void CCGWorkView::OnDraw(CDC* pDC)
 
         COLORREF objectColor = useCustomWireframeColor ? wireframeColor : RGB(o.red, o.green, o.blue);
         COLORREF normalColor = useCustomNormalsColor ? normalsColor : RGB(o.red, o.green, o.blue);
+		for (GraphicPolygon p : o.polygons) {
+			// Draw the edges of the polygon:
+			vector<Edge> projectedEdges;
+			for (Edge e : p.edges) {
+				Vec4 start = t * e.start;
+				start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
+				Vec4 end = t * e.end;
+				end = Vec4(end.x / end.w, end.y / end.w, end.z / end.w, 1);
+				drawLine(start, end, objectColor, pDCToUse);
+			}
+		}
+		if (renderScreen) {
+			for (GraphicPolygon p : o.polygons) {
+				// Backface culling
+				vector<Edge> projectedEdges;
+				int y_min = INT_MAX;
+				int y_max = INT_MIN;
+				for (Edge e : p.edges) {
+					Vec4 start = t * e.start;
+					start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
+					Vec4 end = t * e.end;
+					end = Vec4(end.x / end.w, end.y / end.w, end.z / end.w, 1);
+					y_min = (min(start.y, end.y)) < y_min ? (min(start.y, end.y)) : y_min;
+					y_max = (max(start.y, end.y)) > y_max ? (max(start.y, end.y)) : y_max;
+					projectedEdges.push_back(Edge(start, end));
+				}
+				for (size_t y = y_min; y < y_max; y++) {
+					vector<std::pair<double, Edge>> edge_intersections;
+					for (Edge e : projectedEdges) {
+						if ((e.start.y <= y && y < e.end.y) || (e.end.y <= y && y < e.start.y)) {
+							if (e.end.x == e.start.x) {
+								edge_intersections.push_back(std::pair<double, Edge>(e.start.x, e));
+							}
+							else {
+								double x = ((y - e.start.y) / (e.end.y - e.start.y))*(e.end.x - e.start.x) + e.start.x;
+								edge_intersections.push_back(std::pair<double, Edge>(x, e));
+							}
+						}
+					}
 
-        for (GraphicPolygon p : o.polygons) {
-            // Draw the edges of the polygon:
-            vector<Edge> projectedEdges;
-            for (Edge e : p.edges) {
-                Vec4 start = t * e.start;
-                start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
-                Vec4 end = t * e.end;
-                end = Vec4(end.x / end.w, end.y / end.w, end.z / end.w, 1);
+					std::sort(edge_intersections.begin(), edge_intersections.end(),
+						[](std::pair<double, Edge> p1, std::pair<double, Edge> p2) {return p1.first < p2.first; });
 
-                if (0 <= start.x && start.x <= m_WindowWidth && 0 <= end.x && end.x <= m_WindowWidth && 
-                    0 <= start.y && start.y <= m_WindowHeight && 0 <= end.y && end.y <= m_WindowHeight) {
-                    drawLine(start, end, objectColor, pDCToUse);
-                    if (renderScreen) {
-                        projectedEdges.push_back(Edge(start, end));
-                    }
-                }
-            }
+					for (int k = 0; k < edge_intersections.size(); k += 2) {
+						double l_x = edge_intersections[k].first;
+						double r_x = edge_intersections[k + 1].first;
+						Edge l_edge = edge_intersections[k].second;
+						Edge r_edge = edge_intersections[k + 1].second;
+						double z1 = l_edge.getZ(l_x, y);
+						double z2 = r_edge.getZ(r_x, y);
+						Edge scan_edge = Edge(Vec4(l_x+1, y, z1, 1), Vec4(r_x-1, y, z2, 1));
+						//drawLine(scan_edge.start, scan_edge.end, backgroundColor, pDCToUse);
 
-            if (renderScreen) {
-                // Fill the polygons using scan conversion:
-                vector<Edge> activeEdges;
-                std::sort(projectedEdges.begin(), projectedEdges.end());
-                for (size_t y = 0; y < m_WindowHeight; y++) {
-                    for (Edge e : projectedEdges) {
-                        double eymax = e.ymax();
-                        vector<Edge>::iterator pos = std::find(activeEdges.begin(), activeEdges.end(), e);
-                        if (pos == activeEdges.end() && e.ymin() <= y) {
-                            activeEdges.push_back(e);
-                        } else if (pos != activeEdges.end() && eymax < y) {
-                            activeEdges.erase(pos);
-                        }
-                    }
-                    vector<double> intersections;
-                    for (Edge e : activeEdges) {
-                        if ((e.start.y <= y && y <= e.end.y) || (e.end.y <= y && y <= e.start.y)) {
-                            if (e.end.x == e.start.x) {
-                                intersections.push_back(e.start.x);
-                            } else {
-                                double m = (e.end.y - e.start.y) / (e.end.x - e.start.x);
-                                double x = e.start.x + (y - e.start.y) / m;
-                                if (0 <= x && x < m_WindowWidth) {
-                                    intersections.push_back(x);
-                                }
-                            }
-                        }
-                    }
-                    std::sort(intersections.begin(), intersections.end());
-                    //vector<Vec4> odds;
-                    //vector<Vec4> evens;
-                    //for (size_t i = 0; i < intersections.size(); i++) {
-                    //    if (i % 2) {
-                    //        odds.push_back(Vec4(intersections[i], y, 0, 1));
-                    //    } else {
-                    //        evens.push_back(Vec4(intersections[i], y, 0, 1));
-                    //    }
-                    //}
-                    //for (size_t i = 0; i < odds.size(); i++) {
-                    //    drawLine(odds[i], evens[i], objectColor, pDCToUse);
-                    //}
-                    int prevX = 0;
-                    bool inside = false;
-                    for (int intersectionX : intersections) {
-                        if (inside) {
-                            for (int x = prevX; x < intersectionX; x++) {
-                                pDCToUse->SetPixel(x, y, objectColor);
-                            }
-                        }
-                        prevX = intersectionX;
-                        inside = !inside;
-                    }
-                }
-            }
-
-            // Draw the normals of the polygon:
-            Vec4 normal, v0, v1, start, end, direction;
-            switch (drawNormals) {
-            case ID_NORMAL_POLYGONS_CALCULATED:
-                v0 = p.edges[0].end - p.edges[0].start;
-                v1 = p.edges[1].end - p.edges[1].start;
-                normal = v0.cross(v1).normalize();
-                if (invertNormals) {
-                    normal = -normal;
-                }
-                start = t * p.center;
-                end = t * (p.center - normal);
-                drawLine(start, end, normalColor, pDCToUse);
-                break;
-            case ID_NORMAL_POLYGONS_GIVEN:
-                normal = p.normal;
-                if (invertNormals) {
-                    normal = -normal;
-                }
-                start = t * p.center;
-                end = t * (p.center - normal);
-                drawLine(start, end, normalColor, pDCToUse);
-                break;
-            case ID_NORMAL_VERTICES_CALCULATED:
-                for (Edge e : p.edges) {
-                    vector<int> hashVertex;
-                    hashVertex.push_back((int)(e.start.x * HASH_PRECISION));
-                    hashVertex.push_back((int)(e.start.y * HASH_PRECISION));
-                    hashVertex.push_back((int)(e.start.z * HASH_PRECISION));
-                    normal = vertexNormals[hashVertex];
-                    if (invertNormals) {
-                        normal = -normal;
-                    }
-                    start = t * e.start;
-                    end = start - (t * normal);
-                    drawLine(start, end, normalColor, pDCToUse);
-                }
-                break;
-            case ID_NORMAL_VERTICES_GIVEN:
-                for (Edge e : p.edges) {
-                    if (!(e.start.normalX == 0 && e.start.normalY == 0 && e.start.normalZ == 0)) {
-                        normal = Vec4(e.start.normalX, e.start.normalY, e.start.normalZ, 0);
-                        if (invertNormals) {
-                            normal = -normal;
-                        }
-                        start = t * e.start;
-                        end = start + (t * normal);
-                        drawLine(start, end, normalColor, pDCToUse);
-                    }
-                }
-                break;
-            default:
-                break;
-            }
-        }
-
+						for (double current_x = l_x+1; current_x < r_x-1; current_x++) {
+							double current_z = scan_edge.getZ(current_x, y);
+							if ((current_x < zbuffer.size() && current_x >= 0 && y >= 0 && y < zbuffer[0].size()) && current_z < zbuffer[current_x][y]) {
+								zbuffer[current_x][y] = current_z;
+								cbuffer[current_x][y] = backgroundColor;
+							}
+						}
+					}
+				}
+			}
+		}
+		for (GraphicPolygon p : o.polygons) {
+			// Draw the normals of the polygon:
+			Vec4 normal, v0, v1, start, end, direction;
+			switch (drawNormals) {
+			case ID_NORMAL_POLYGONS_CALCULATED:
+				v0 = p.edges[0].end - p.edges[0].start;
+				v1 = p.edges[1].end - p.edges[1].start;
+				normal = v0.cross(v1).normalize();
+				if (invertNormals) {
+					normal = -normal;
+				}
+				start = t * p.center;
+				end = t * (p.center - normal);
+				drawLine(start, end, normalColor, pDCToUse);
+				break;
+			case ID_NORMAL_POLYGONS_GIVEN:
+				normal = p.normal;
+				if (invertNormals) {
+					normal = -normal;
+				}
+				start = t * p.center;
+				end = t * (p.center - normal);
+				drawLine(start, end, normalColor, pDCToUse);
+				break;
+			case ID_NORMAL_VERTICES_CALCULATED:
+				for (Edge e : p.edges) {
+					vector<int> hashVertex;
+					hashVertex.push_back((int)(e.start.x * HASH_PRECISION));
+					hashVertex.push_back((int)(e.start.y * HASH_PRECISION));
+					hashVertex.push_back((int)(e.start.z * HASH_PRECISION));
+					normal = vertexNormals[hashVertex];
+					if (invertNormals) {
+						normal = -normal;
+					}
+					start = t * e.start;
+					end = start - (t * normal);
+					drawLine(start, end, normalColor, pDCToUse);
+				}
+				break;
+			case ID_NORMAL_VERTICES_GIVEN:
+				for (Edge e : p.edges) {
+					if (!(e.start.normalX == 0 && e.start.normalY == 0 && e.start.normalZ == 0)) {
+						normal = Vec4(e.start.normalX, e.start.normalY, e.start.normalZ, 0);
+						if (invertNormals) {
+							normal = -normal;
+						}
+						start = t * e.start;
+						end = start + (t * normal);
+						drawLine(start, end, normalColor, pDCToUse);
+					}
+				}
+				break;
+			default:
+				break;
+			}
+		}
         // Draw the bounding box of the object:
         if (drawBoundingBox) {
             for (Edge e : o.boundingBox) {
@@ -503,6 +508,14 @@ void CCGWorkView::OnDraw(CDC* pDC)
             }
         }
     }
+
+	for (size_t i = 0; i < m_WindowWidth; i++) {
+		for (size_t j = 0; j < m_WindowHeight; j++) {
+			if (cbuffer[i][j] != backgroundColor) {
+				pDCToUse->SetPixel(i, j, cbuffer[i][j]);
+			}
+		}
+	}
 
     if (pDCToUse != m_pDC) {
         m_pDC->BitBlt(r.left, r.top, r.Width(), r.Height(), pDCToUse, r.left, r.top, SRCCOPY);
@@ -918,11 +931,11 @@ void CCGWorkView::OnNormalNone()
 void CCGWorkView::drawLine(Vec4& start, Vec4& end, COLORREF color, CDC* dc)
 {
     int x1 = start.x;
-    int y1 = start.y;
-    int x2 = end.x;
-    int y2 = end.y;
-    int x = x1;
-    int y = y1;
+	int y1 = start.y;
+	int x2 = end.x;
+	int y2 = end.y;
+	int x = x1;
+	int y = y1;
     int dx = x2 - x1 > 0 ? x2 - x1 : x1 - x2;
     int dy = y2 - y1 > 0 ? y2 - y1 : y1 - y2;
     int s1 = x2 > x1 ? 1 : -1;
@@ -939,7 +952,14 @@ void CCGWorkView::drawLine(Vec4& start, Vec4& end, COLORREF color, CDC* dc)
     int ne = 2 * dy - dx;
     int a = 2 * dy;
     int b = 2 * dy - 2 * dx;
-    dc->SetPixel(x, y, color);
+	Edge scanned_edge = Edge(start, end);
+	if (x >= zbuffer.size() || y >= zbuffer[0].size() || y < 0 || x < 0) {
+		return;
+	}
+	if (scanned_edge.getZ(x,y) < zbuffer[x][y]) {
+		zbuffer[x][y] = scanned_edge.getZ(x,y);
+		cbuffer[x][y] = color;
+	}
     for (int i = 1; i <= dx; i++) {
         if (ne < 0) {
             if (change == 1) {
@@ -953,7 +973,13 @@ void CCGWorkView::drawLine(Vec4& start, Vec4& end, COLORREF color, CDC* dc)
             x = x + s1;
             ne = ne + b;
         }
-        dc->SetPixel(x, y, color);
+		if (x >= zbuffer.size() || y >= zbuffer[0].size() || y < 0 || x < 0) {
+			return;
+		}
+		if (scanned_edge.getZ(x, y) < zbuffer[x][y]) {
+			zbuffer[x][y] = scanned_edge.getZ(x,y);
+			cbuffer[x][y] = color;
+		}
     }
 }
 

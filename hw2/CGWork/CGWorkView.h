@@ -79,6 +79,8 @@ private:
 	double a;
     bool invertNormals;
     bool renderScreen;
+	vector<vector<double>> zbuffer;
+	vector<vector<COLORREF>> cbuffer;
 
     void Transform(CPoint diff);
     void Transform(int i, double dx, double dy);

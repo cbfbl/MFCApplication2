@@ -15,6 +15,7 @@ public:
     BOOL operator==(const Edge& rhs) const;
     int ymin() const;
     int ymax() const;
+	double getZ(double x, double y);
 
 private:
 };
