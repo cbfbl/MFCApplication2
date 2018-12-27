@@ -55,6 +55,7 @@ private:
 	LightParams m_ambientLight;		//ambient light (only RGB is used)
 
     bool drawBoundingBox;
+    bool drawSilhouette;
     int drawNormals;
     CPoint lastCursorLocation;
     Mat4 screen;
@@ -73,6 +74,7 @@ private:
     COLORREF normalsColor;
     bool useCustomNormalsColor;
     COLORREF backgroundColor;
+    COLORREF silhouetteColor;
     int mouseSensitivity;
 	bool object;
     int objIdx;
@@ -171,6 +173,8 @@ public:
     afx_msg void OnUpdateAxisXy(CCmdUI* pCmdUI);
     afx_msg void OnUpdateViewBoundingbox(CCmdUI* pCmdUI);
     afx_msg void OnViewBoundingbox();
+    afx_msg void OnUpdateViewSilhouette(CCmdUI* pCmdUI);
+    afx_msg void OnViewSilhouette();
     afx_msg void OnNormalPolygonsCalculated();
     afx_msg void OnUpdateNormalPolygonsCalculated(CCmdUI* pCmdUI);
     afx_msg void OnNormalPolygonsGiven();

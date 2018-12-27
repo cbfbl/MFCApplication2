@@ -83,6 +83,7 @@ BEGIN
         MENUITEM "&Perspective",                ID_VIEW_PERSPECTIVE
         MENUITEM SEPARATOR
         MENUITEM "Bounding Box",                ID_VIEW_BOUNDINGBOX
+        MENUITEM "Silhouette",                  ID_VIEW_SILHOUETTE
         MENUITEM SEPARATOR
         POPUP "Normals"
         BEGIN
