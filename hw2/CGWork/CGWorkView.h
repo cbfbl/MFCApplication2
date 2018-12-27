@@ -82,13 +82,18 @@ private:
     bool renderScreen;
     bool cullBackfaces;
     bool bgStretch;
+    bool useCalculateNormals;
+    bool bonusBackfaceCulling;
 	vector<vector<double>> zbuffer;
     vector<vector<COLORREF>> cbuffer;
+    vector<vector<COLORREF>> bgbuffer;
 
     void Transform(CPoint diff);
     void Transform(int i, double dx, double dy);
     void drawLine(Vec4& start, Vec4& end, COLORREF color);
+    Edge getNormalToPolygon(GraphicPolygon& p, Mat4& t, bool calculated);
     COLORREF getColorAfterShading(Vec4& point, Vec4& normal, COLORREF color, Mat4& t);
+    COLORREF getBgValue(int x, int y, int width, int height);
 
 // Overrides
 	// ClassWizard generated virtual function overrides
@@ -186,6 +191,8 @@ public:
     afx_msg void OnRenderFile();
     afx_msg void OnUpdateBackfaceCulling(CCmdUI* pCmdUI);
     afx_msg void OnBackfaceCulling();
+    afx_msg void OnUpdateBonusBackfaceCulling(CCmdUI* pCmdUI);
+    afx_msg void OnBonusBackfaceCulling();
     afx_msg void OnUpdateBgStretch(CCmdUI* pCmdUI);
     afx_msg void OnBgStretch();
     afx_msg void OnUpdateBgRepeat(CCmdUI* pCmdUI);
@@ -203,6 +210,8 @@ public:
     afx_msg void OnActionSelectedobject();
     afx_msg void OnOptionsFineness();
 	afx_msg void OnOptionsPerspectivecontrol32824();
+	afx_msg void OnUpdateUseCalculatedNormals(CCmdUI *pCmdUI);
+	afx_msg void OnUseCalculatedNormals();
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp

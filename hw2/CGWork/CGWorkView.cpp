@@ -89,6 +89,8 @@ ON_UPDATE_COMMAND_UI(ID_ACTION_VIEW, OnUpdateActionView)
 ON_UPDATE_COMMAND_UI(ID_ACTION_OBJECT, OnUpdateActionObject)
 ON_COMMAND(ID_ACTION_VIEW, OnActionView)
 ON_COMMAND(ID_ACTION_OBJECT, OnActionObject)
+ON_UPDATE_COMMAND_UI(ID_OPTIONS_USECALCULATEDNORMALS, OnUpdateUseCalculatedNormals)
+ON_COMMAND(ID_OPTIONS_USECALCULATEDNORMALS, OnUseCalculatedNormals)
 ON_COMMAND(ID_ACTION_SELECTEDOBJECT, OnActionSelectedobject)
 ON_COMMAND(ID_OPTIONS_FINENESS, OnOptionsFineness)
 ON_COMMAND(ID_OPTIONS_PERSPECTIVECONTROL32824, OnOptionsPerspectivecontrol32824)
@@ -100,6 +102,10 @@ ON_COMMAND(ID_RENDER_FILE, OnRenderFile)
 ON_UPDATE_COMMAND_UI(ID_RENDER_FILE, OnUpdateRenderFile)
 ON_COMMAND(ID_RENDER_BACKFACECULLING, OnBackfaceCulling)
 ON_UPDATE_COMMAND_UI(ID_RENDER_BACKFACECULLING, OnUpdateBackfaceCulling)
+ON_COMMAND(ID_RENDER_BONUSBACKFACECULLING, OnBonusBackfaceCulling)
+ON_UPDATE_COMMAND_UI(ID_RENDER_BONUSBACKFACECULLING, OnUpdateBonusBackfaceCulling)
+ON_COMMAND(ID_BG_LOAD, OnBgLoad)
+ON_COMMAND(ID_BG_CLEAR, OnBgClear)
 ON_COMMAND(ID_BG_STRETCH, OnBgStretch)
 ON_UPDATE_COMMAND_UI(ID_BG_STRETCH, OnUpdateBgStretch)
 ON_COMMAND(ID_BG_REPEAT, OnBgRepeat)
@@ -167,7 +173,10 @@ CCGWorkView::CCGWorkView()
     invertNormals = false;
     renderScreen = false;
     cullBackfaces = false;
+    bonusBackfaceCulling = false;
     bgStretch = true;
+    useCalculateNormals = false;
+    //bgbuffer = vector<vector<COLORREF>>(0);
 }
 
 CCGWorkView::~CCGWorkView()
@@ -330,11 +339,13 @@ void CCGWorkView::OnDraw(CDC* pDC)
     CDC* pDCToUse = /*m_pDC*/ m_pDbDC;
 
     pDCToUse->FillSolidRect(&r, backgroundColor);
-	RenderScene(m_WindowWidth, m_WindowHeight);
+    RenderScene(m_WindowWidth, m_WindowHeight);
     for (size_t i = 0; i < m_WindowWidth; i++) {
         for (size_t j = 0; j < m_WindowHeight; j++) {
             if (cbuffer[i][j] != backgroundColor) {
                 pDCToUse->SetPixel(i, j, cbuffer[i][j]);
+            } else if (!bgbuffer.empty()) {
+                pDCToUse->SetPixel(i, j, getBgValue(i, j, m_WindowWidth, m_WindowHeight));
             }
         }
     }
@@ -347,19 +358,19 @@ void CCGWorkView::OnDraw(CDC* pDC)
 void CCGWorkView::RenderScene(int width, int height)
 {
     zbuffer = vector<vector<double>>(width);
-	for (size_t i = 0; i < width; i++) {
-		zbuffer[i] = vector<double>(height);
-		for (size_t j = 0; j < height; j++) {
-			zbuffer[i][j] = DBL_MAX;
-		}
-	}
-	cbuffer = vector<vector<COLORREF>>(width);
-	for (size_t i = 0; i < width; i++) {
-		cbuffer[i] = vector<COLORREF>(height);
-		for (size_t j = 0; j < height; j++) {
-			cbuffer[i][j] = backgroundColor;
-		}
-	}
+    for (size_t i = 0; i < width; i++) {
+        zbuffer[i] = vector<double>(height);
+        for (size_t j = 0; j < height; j++) {
+            zbuffer[i][j] = DBL_MAX;
+        }
+    }
+    cbuffer = vector<vector<COLORREF>>(width);
+    for (size_t i = 0; i < width; i++) {
+        cbuffer[i] = vector<COLORREF>(height);
+        for (size_t j = 0; j < height; j++) {
+            cbuffer[i][j] = backgroundColor;
+        }
+    }
 
     for (size_t i = 0; i < graphicObjects.size(); i++) {
         Mat4 rotateX = Mat4(
@@ -397,7 +408,7 @@ void CCGWorkView::RenderScene(int width, int height)
             Vec4(0, 1, 0, 0),
             Vec4(0, 0, 1, 3.14),
             Vec4(0, 0, 0, 1));
-        Mat4 t;
+        Mat4 t, tp;
         if (!m_bIsPerspective) {
             perspective = Mat4(
                 Vec4(1, 0, 0, 0),
@@ -412,109 +423,108 @@ void CCGWorkView::RenderScene(int width, int height)
         }
         if (object) {
             t = screen * perspective * translateZinit * translate * rotateZ * rotateY * rotateX * scale;
+            tp = screen * translateZinit * translate * rotateZ * rotateY * rotateX * scale;
         } else {
             t = screen * perspective * translateZinit * translate * rotateX * rotateY * rotateZ * scale;
+            tp = screen * translateZinit * translate * rotateX * rotateY * rotateZ * scale;
         }
         GraphicObject o = graphicObjects[i];
 
         COLORREF objectColor = useCustomWireframeColor ? wireframeColor : RGB(o.red, o.green, o.blue);
         COLORREF normalColor = useCustomNormalsColor ? normalsColor : RGB(o.red, o.green, o.blue);
-		for (GraphicPolygon p : o.polygons) {
-			// Draw the edges of the polygon:
-			vector<Edge> projectedEdges;
-			for (Edge e : p.edges) {
-				Vec4 start = t * e.start;
-				start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
-				Vec4 end = t * e.end;
-				end = Vec4(end.x / end.w, end.y / end.w, end.z / end.w, 1);
+        for (GraphicPolygon p : o.polygons) {
+            // Draw the edges of the polygon:
+            vector<Edge> projectedEdges;
+            if (bonusBackfaceCulling) {
+                Vec4 normal = t * p.normal;
+                if (normal.z < 0) {
+                    continue;
+                }
+            }
+            for (Edge e : p.edges) {
+                Vec4 start = t * e.start;
+                start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
+                Vec4 end = t * e.end;
+                end = Vec4(end.x / end.w, end.y / end.w, end.z / end.w, 1);
+                drawLine(start, end, objectColor);
+            }
+        }
+        for (GraphicPolygon p : o.polygons) {
+            vector<Edge> projectedEdges;
+            int y_min = INT_MAX;
+            int y_max = INT_MIN;
+            for (Edge e : p.edges) {
+                Vec4 start = t * e.start;
+                start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
+                Vec4 end = t * e.end;
+                end = Vec4(end.x / end.w, end.y / end.w, end.z / end.w, 1);
+                y_min = (min(start.y, end.y)) < y_min ? (min(start.y, end.y)) : y_min;
+                y_max = (max(start.y, end.y)) > y_max ? (max(start.y, end.y)) : y_max;
+                projectedEdges.push_back(Edge(start, end));
+            }
+            for (size_t y = y_min; y < y_max; y++) {
+                vector<std::pair<double, Edge>> edge_intersections;
+                for (Edge e : projectedEdges) {
+                    if ((e.start.y <= y && y < e.end.y) || (e.end.y <= y && y < e.start.y)) {
+                        if (e.end.x == e.start.x) {
+                            edge_intersections.push_back(std::pair<double, Edge>(e.start.x, e));
+                        } else {
+                            double x = ((y - e.start.y) / (e.end.y - e.start.y)) * (e.end.x - e.start.x) + e.start.x;
+                            edge_intersections.push_back(std::pair<double, Edge>(x, e));
+                        }
+                    }
+                }
 
-				drawLine(start, end, objectColor);
-			}
-		}
-		for (GraphicPolygon p : o.polygons) {
-			vector<Edge> projectedEdges;
-			int y_min = INT_MAX;
-			int y_max = INT_MIN;
-			for (Edge e : p.edges) {
-				Vec4 start = t * e.start;
-				start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
-				Vec4 end = t * e.end;
-				end = Vec4(end.x / end.w, end.y / end.w, end.z / end.w, 1);
-				y_min = (min(start.y, end.y)) < y_min ? (min(start.y, end.y)) : y_min;
-				y_max = (max(start.y, end.y)) > y_max ? (max(start.y, end.y)) : y_max;
-				projectedEdges.push_back(Edge(start, end));
-			}
-			for (size_t y = y_min; y < y_max; y++) {
-				vector<std::pair<double, Edge>> edge_intersections;
-				for (Edge e : projectedEdges) {
-					if ((e.start.y <= y && y < e.end.y) || (e.end.y <= y && y < e.start.y)) {
-						if (e.end.x == e.start.x) {
-							edge_intersections.push_back(std::pair<double, Edge>(e.start.x, e));
-						}
-						else {
-							double x = ((y - e.start.y) / (e.end.y - e.start.y))*(e.end.x - e.start.x) + e.start.x;
-							edge_intersections.push_back(std::pair<double, Edge>(x, e));
-						}
-					}
-				}
+                std::sort(edge_intersections.begin(), edge_intersections.end(),
+                    [](std::pair<double, Edge> p1, std::pair<double, Edge> p2) { return p1.first < p2.first; });
 
-				std::sort(edge_intersections.begin(), edge_intersections.end(),
-					[](std::pair<double, Edge> p1, std::pair<double, Edge> p2) {return p1.first < p2.first; });
+                for (int k = 0; k < edge_intersections.size(); k += 2) {
+                    double l_x = edge_intersections[k].first;
+                    double r_x = edge_intersections[k + 1].first;
+                    Edge l_edge = edge_intersections[k].second;
+                    Edge r_edge = edge_intersections[k + 1].second;
+                    double z1 = l_edge.getZ(l_x, y);
+                    double z2 = r_edge.getZ(r_x, y);
+                    Edge scan_edge = Edge(Vec4(l_x + 1, y, z1, 1), Vec4(r_x - 1, y, z2, 1));
+                    //drawLine(scan_edge.start, scan_edge.end, backgroundColor, dc);
 
-				for (int k = 0; k < edge_intersections.size(); k += 2) {
-					double l_x = edge_intersections[k].first;
-					double r_x = edge_intersections[k + 1].first;
-					Edge l_edge = edge_intersections[k].second;
-					Edge r_edge = edge_intersections[k + 1].second;
-					double z1 = l_edge.getZ(l_x, y);
-					double z2 = r_edge.getZ(r_x, y);
-					Edge scan_edge = Edge(Vec4(l_x+1, y, z1, 1), Vec4(r_x-1, y, z2, 1));
-					//drawLine(scan_edge.start, scan_edge.end, backgroundColor, dc);
-
-					for (double current_x = l_x+1; current_x < r_x-1; current_x++) {
-						double current_z = scan_edge.getZ(current_x, y);
+                    for (double current_x = l_x + 1; current_x < r_x - 1; current_x++) {
+                        double current_z = scan_edge.getZ(current_x, y);
                         if (cullBackfaces) {
-							if ((current_x < zbuffer.size() && current_x >= 0 && y >= 0 && y < zbuffer[0].size()) && current_z < zbuffer[current_x][y]) {
-								zbuffer[current_x][y] = current_z;
+                            if ((current_x < zbuffer.size() && current_x >= 0 && y >= 0 && y < zbuffer[0].size()) && current_z < zbuffer[current_x][y]) {
+                                zbuffer[current_x][y] = current_z;
                                 // TODO:SHADING: getColorAfterShading(Vec4(x, y, zbuffer[i][j], 1), p.normal, objectColor);
                                 if (renderScreen) {
-                                    COLORREF shadedColor = getColorAfterShading(Vec4(current_x, y, current_z, 1), p.normal, objectColor, t);
+                                    Edge ne = getNormalToPolygon(p, t, useCalculateNormals);
+                                    Vec4 normal = (ne.end - ne.start).normalize();
+                                    COLORREF shadedColor = getColorAfterShading(Vec4(current_x, y, current_z, 1), normal, objectColor, t);
                                     cbuffer[current_x][y] = shadedColor;
                                 } else {
-								    cbuffer[current_x][y] = backgroundColor;
+                                    cbuffer[current_x][y] = backgroundColor;
                                 }
-							}
+                            }
                         } else if (renderScreen) {
-                            COLORREF shadedColor = getColorAfterShading(Vec4(current_x, y, current_z, 1), p.normal, objectColor, t);
+                            Edge ne = getNormalToPolygon(p, t, useCalculateNormals);
+                            Vec4 normal = (ne.end - ne.start).normalize();
+                            COLORREF shadedColor = getColorAfterShading(Vec4(current_x, y, current_z, 1), normal, objectColor, t);
                             cbuffer[current_x][y] = shadedColor;
                         }
-					}
-				}
-			}
-		}
-		for (GraphicPolygon p : o.polygons) {
-			// Draw the normals of the polygon:
+                    }
+                }
+            }
+        }
+        for (GraphicPolygon p : o.polygons) {
+            // Draw the normals of the polygon:
             Vec4 normal, v0, v1, start, end, direction;
+            Edge ne; 
             switch (drawNormals) {
             case ID_NORMAL_POLYGONS_CALCULATED:
-                v0 = p.edges[0].end - p.edges[0].start;
-                v1 = p.edges[1].end - p.edges[1].start;
-                normal = -v0.cross(v1).normalize();
-                if (invertNormals) {
-                    normal = -normal;
-                }
-                start = t * p.center;
-                end = t * (p.center - normal);
-                drawLine(start, end, normalColor);
+                ne = getNormalToPolygon(p, t, true);
+                drawLine(ne.start, ne.end, normalColor);
                 break;
             case ID_NORMAL_POLYGONS_GIVEN:
-                normal = p.normal;
-                if (invertNormals) {
-                    normal = -normal;
-                }
-                start = t * p.center;
-                end = t * (p.center - normal);
-                drawLine(start, end, normalColor);
+                ne = getNormalToPolygon(p, t, false);
+                drawLine(ne.start, ne.end, normalColor);
                 break;
             case ID_NORMAL_VERTICES_CALCULATED:
                 for (Edge e : p.edges) {
@@ -528,6 +538,8 @@ void CCGWorkView::RenderScene(int width, int height)
                     }
                     start = t * e.start;
                     end = start - (t * normal);
+                    start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
+                    end = Vec4(end.x / end.w, end.y / end.w, end.z / end.w, 1);
                     drawLine(start, end, normalColor);
                 }
                 break;
@@ -540,6 +552,8 @@ void CCGWorkView::RenderScene(int width, int height)
                         }
                         start = t * e.start;
                         end = start + (t * normal);
+                        start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
+                        end = Vec4(end.x / end.w, end.y / end.w, end.z / end.w, 1);
                         drawLine(start, end, normalColor);
                     }
                 }
@@ -562,11 +576,11 @@ void CCGWorkView::RenderScene(int width, int height)
 void CCGWorkView::drawLine(Vec4& start, Vec4& end, COLORREF color)
 {
     int x1 = start.x;
-	int y1 = start.y;
-	int x2 = end.x;
-	int y2 = end.y;
-	int x = x1;
-	int y = y1;
+    int y1 = start.y;
+    int x2 = end.x;
+    int y2 = end.y;
+    int x = x1;
+    int y = y1;
     int dx = x2 - x1 > 0 ? x2 - x1 : x1 - x2;
     int dy = y2 - y1 > 0 ? y2 - y1 : y1 - y2;
     int s1 = x2 > x1 ? 1 : -1;
@@ -583,14 +597,14 @@ void CCGWorkView::drawLine(Vec4& start, Vec4& end, COLORREF color)
     int ne = 2 * dy - dx;
     int a = 2 * dy;
     int b = 2 * dy - 2 * dx;
-	Edge scanned_edge = Edge(start, end);
-	if (x >= zbuffer.size() || y >= zbuffer[0].size() || y < 0 || x < 0) {
-		return;
-	}
-	if (scanned_edge.getZ(x,y) < zbuffer[x][y]) {
-		zbuffer[x][y] = scanned_edge.getZ(x,y);
-		cbuffer[x][y] = color;
-	}
+    Edge scanned_edge = Edge(start, end);
+    if (x >= zbuffer.size() || y >= zbuffer[0].size() || y < 0 || x < 0) {
+        return;
+    }
+    if (scanned_edge.getZ(x, y) < zbuffer[x][y]) {
+        zbuffer[x][y] = scanned_edge.getZ(x, y);
+        cbuffer[x][y] = color;
+    }
     for (int i = 1; i <= dx; i++) {
         if (ne < 0) {
             if (change == 1) {
@@ -604,13 +618,41 @@ void CCGWorkView::drawLine(Vec4& start, Vec4& end, COLORREF color)
             x = x + s1;
             ne = ne + b;
         }
-		if (x >= zbuffer.size() || y >= zbuffer[0].size() || y < 0 || x < 0) {
-			return;
-		}
-		if (scanned_edge.getZ(x, y) < zbuffer[x][y]) {
-			zbuffer[x][y] = scanned_edge.getZ(x,y);
-			cbuffer[x][y] = color;
-		}
+        if (x >= zbuffer.size() || y >= zbuffer[0].size() || y < 0 || x < 0) {
+            return;
+        }
+        if (scanned_edge.getZ(x, y) < zbuffer[x][y]) {
+            zbuffer[x][y] = scanned_edge.getZ(x, y);
+            cbuffer[x][y] = color;
+        }
+    }
+}
+
+Edge CCGWorkView::getNormalToPolygon(GraphicPolygon& p, Mat4& t, bool calculated)
+{
+    Vec4 normal, v0, v1, start, end, direction;
+    if (calculated) {
+        v0 = p.edges[0].end - p.edges[0].start;
+        v1 = p.edges[1].end - p.edges[1].start;
+        normal = -v0.cross(v1).normalize();
+        if (invertNormals) {
+            normal = -normal;
+        }
+        start = t * p.center;
+        end = t * (p.center - normal);
+        start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
+        end = Vec4(end.x / end.w, end.y / end.w, end.z / end.w, 1);
+        return Edge(start, end);
+    } else {
+        normal = p.normal;
+        if (invertNormals) {
+            normal = -normal;
+        }
+        start = t * p.center;
+        end = t * (p.center - normal);
+        start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
+        end = Vec4(end.x / end.w, end.y / end.w, end.z / end.w, 1);
+        return Edge(start, end);
     }
 }
 
@@ -632,12 +674,12 @@ COLORREF CCGWorkView::getColorAfterShading(Vec4& point, Vec4& normal, COLORREF c
             lightVec = Vec4(point.x - light.posX, point.y - light.posY, point.z - light.posZ, 0);
         }
         if (lightVec != Vec4(0, 0, 0, 0)) {
-            /*if (light.space == LIGHT_SPACE_VIEW) {
-                lightVec = t * lightVec;
-            }*/
+            if (light.space == LIGHT_SPACE_LOCAL) {
+                lightVec = screen * lightVec;
+            }
             // Diffuse + Specular lighting:
             Vec4 lightNormalized = lightVec.normalize();
-            double NL = normal * lightNormalized; // <N, L> == cos(theta)
+            double NL = -normal * lightNormalized; // <N, L> == cos(theta)
             double pointDotLight = pointNormalized * lightNormalized;
             double RV = cos(acos(pointDotLight) - 2 * acos(pointDotLight));
             double RVn = pow(RV, m_nMaterialCosineFactor);
@@ -659,6 +701,17 @@ COLORREF CCGWorkView::getColorAfterShading(Vec4& point, Vec4& normal, COLORREF c
         colorB * factorB);
 }
 
+COLORREF CCGWorkView::getBgValue(int x, int y, int width, int height)
+{
+    if (bgStretch) {
+        // Stretch:
+        return bgbuffer[x * bgbuffer.size() / width][y * bgbuffer[0].size() / height];
+    } else {
+        // Repeat:
+        return bgbuffer[x % bgbuffer.size()][y % bgbuffer[0].size()];
+    }
+}
+
 /////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////
@@ -671,7 +724,6 @@ void CCGWorkView::OnFileLoad()
 
     if (dlg.DoModal() == IDOK) {
         m_strItdFileName = dlg.GetPathName(); // Full path and filename
-        PngWrapper p;
         graphicObjects.clear();
         CGSkelProcessIritDataFiles(m_strItdFileName, 1);
         // Open the file and read it.
@@ -1056,7 +1108,6 @@ void CCGWorkView::OnNormalNone()
     Invalidate();
 }
 
-
 void CCGWorkView::OnOptionsWireframecolor()
 {
     CColorDialog colorDialog;
@@ -1195,7 +1246,7 @@ void CCGWorkView::OnRenderFile()
     if (dialog.DoModal() == IDOK) {
         int width = dialog.getWidth();
         int height = dialog.getHeight();
-        CFileDialog fileDialog(FALSE, CString(".png"), NULL, OFN_OVERWRITEPROMPT, CString("*.png"));
+        CFileDialog fileDialog(FALSE, _T("png"), _T("*.png"), OFN_OVERWRITEPROMPT, _T ("PNG (*.png)|*.png|All Files (*.*)|*.*||"));
         if (fileDialog.DoModal() == IDOK) {
             double half_w = width / 2;
             double half_h = height / 2;
@@ -1219,7 +1270,11 @@ void CCGWorkView::OnRenderFile()
             for (size_t i = 0; i < width; i++) {
                 for (size_t j = 0; j < height; j++) {
                     if (cbuffer[i][j] != backgroundColor) {
-                        png.SetValue(i, j, SET_RGB(GetRValue(cbuffer[i][j]), GetGValue(cbuffer[i][j]), GetBValue(cbuffer[i][j])));
+                        COLORREF c = cbuffer[i][j];
+                        png.SetValue(i, j, SET_RGB(GetRValue(c), GetGValue(c), GetBValue(c)));
+                    } else if (!bgbuffer.empty()) {
+                        COLORREF c = getBgValue(i, j, width, height);
+                        png.SetValue(i, j, SET_RGB(GetRValue(c), GetGValue(c), GetBValue(c)));
                     }
                 }
             }
@@ -1236,6 +1291,18 @@ void CCGWorkView::OnUpdateBackfaceCulling(CCmdUI* pCmdUI)
 void CCGWorkView::OnBackfaceCulling()
 {
     cullBackfaces = !cullBackfaces;
+    bonusBackfaceCulling = false;
+    Invalidate();
+}
+
+void CCGWorkView::OnUpdateBonusBackfaceCulling(CCmdUI* pCmdUI)
+{
+    pCmdUI->SetCheck(bonusBackfaceCulling);
+}
+void CCGWorkView::OnBonusBackfaceCulling()
+{
+    bonusBackfaceCulling = !bonusBackfaceCulling;
+    cullBackfaces = false;
     Invalidate();
 }
 
@@ -1260,11 +1327,43 @@ void CCGWorkView::OnBgRepeat()
 
 void CCGWorkView::OnBgLoad()
 {
-    Invalidate();
+    CFileDialog fileDialog(TRUE, _T("png"), _T("*.png"), OFN_OVERWRITEPROMPT, _T ("PNG (*.png)|*.png|All Files (*.*)|*.*||"));
+    if (fileDialog.DoModal() == IDOK) {
+        CStringA pngPath = CStringA(fileDialog.GetPathName());
+        PngWrapper png(pngPath);
+        png.ReadPng();
+        bool isGrayscale = png.GetNumChannels() == 1;
+        int width = png.GetWidth();
+        int height = png.GetHeight();
+
+        bgbuffer = vector<vector<COLORREF>>(width);
+        for (int x = 0; x < width; x++) {
+            bgbuffer[x] = vector<COLORREF>(height);
+            for (int y = 0; y < height; y++) {
+                int c = png.GetValue(x, y);
+                if (isGrayscale) {
+                    bgbuffer[x][y] = c;
+                } else {
+                    bgbuffer[x][y] = RGB(GET_R(c), GET_G(c), GET_B(c));
+                }
+            }
+        }
+        Invalidate();
+    }
 }
 
 void CCGWorkView::OnBgClear()
 {
-    //pngBg = 
-    //Invalidate();
+    bgbuffer.clear();
+    Invalidate();
+}
+
+void CCGWorkView::OnUpdateUseCalculatedNormals(CCmdUI* pCmdUI)
+{
+    pCmdUI->SetCheck(useCalculateNormals);
+}
+void CCGWorkView::OnUseCalculatedNormals()
+{
+    useCalculateNormals = !useCalculateNormals;
+    Invalidate();
 }

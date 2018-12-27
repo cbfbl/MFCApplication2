@@ -105,13 +105,15 @@
 #define ID_BG_REPEAT                    32837
 #define ID_BG_LOAD                      32838
 #define ID_BG_CLEAR                     32839
+#define ID_OPTIONS_USECALCULATEDNORMALS 32840
+#define ID_RENDER_BONUSBACKFACECULLING  32841
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        154
-#define _APS_NEXT_COMMAND_VALUE         32840
+#define _APS_NEXT_COMMAND_VALUE         32842
 #define _APS_NEXT_CONTROL_VALUE         1056
 #define _APS_NEXT_SYMED_VALUE           107
 #endif
