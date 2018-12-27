@@ -502,10 +502,15 @@ void CCGWorkView::RenderScene(int width, int height)
                     Edge r_edge = edge_intersections[k + 1].second;
                     double z1 = l_edge.getZ(l_x, y);
                     double z2 = r_edge.getZ(r_x, y);
-                    Edge scan_edge = Edge(Vec4(l_x + 1, y, z1, 1), Vec4(r_x - 1, y, z2, 1));
+                    Edge scan_edge; 
+                    if (renderScreen) {
+                        scan_edge = Edge(Vec4(l_x, y, z1, 1), Vec4(r_x, y, z2, 1));
+                    } else {
+                        scan_edge = Edge(Vec4(l_x + 1, y, z1, 1), Vec4(r_x - 1, y, z2, 1));
+                    }
                     //drawLine(scan_edge.start, scan_edge.end, backgroundColor, dc);
 
-                    for (double current_x = l_x + 1; current_x < r_x - 1; current_x++) {
+                    for (double current_x = scan_edge.start.x; current_x < scan_edge.end.x; current_x++) {
                         double current_z = scan_edge.getZ(current_x, y);
                         if (cullBackfaces) {
                             if ((current_x < zbuffer.size() && current_x >= 0 && y >= 0 && y < zbuffer[0].size()) && current_z < zbuffer[current_x][y]) {
