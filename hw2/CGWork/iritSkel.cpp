@@ -135,7 +135,7 @@ bool CGSkelStoreData(IPObjectStruct* PObj)
     const IPAttributeStruct* Attrs = AttrTraceAttributes(PObj->Attr, PObj->Attr);
 
     if (PObj->ObjType != IP_OBJ_POLY) {
-        AfxMessageBox(_T("Non polygonal object detected and ignored"));
+        //AfxMessageBox(_T("Non polygonal object detected and ignored"));
         return true;
     }
 

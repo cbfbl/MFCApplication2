@@ -440,6 +440,101 @@ void CCGWorkView::RenderScene(int width, int height)
         COLORREF objectColor = useCustomWireframeColor ? wireframeColor : RGB(o.red, o.green, o.blue);
         COLORREF normalColor = useCustomNormalsColor ? normalsColor : RGB(o.red, o.green, o.blue);
         for (GraphicPolygon p : o.polygons) {
+            // Draw the normals of the polygon:
+            Vec4 normal, v0, v1, start, end, direction;
+            Edge ne;
+            switch (drawNormals) {
+            case ID_NORMAL_POLYGONS_CALCULATED:
+                ne = getNormalToPolygon(p, t, true);
+                drawLine(ne.start, ne.end, normalColor);
+                break;
+            case ID_NORMAL_POLYGONS_GIVEN:
+                ne = getNormalToPolygon(p, t, false);
+                drawLine(ne.start, ne.end, normalColor);
+                break;
+            case ID_NORMAL_VERTICES_CALCULATED:
+                for (Edge e : p.edges) {
+                    vector<int> hashVertex;
+                    hashVertex.push_back((int)(e.start.x * HASH_PRECISION));
+                    hashVertex.push_back((int)(e.start.y * HASH_PRECISION));
+                    hashVertex.push_back((int)(e.start.z * HASH_PRECISION));
+                    normal = vertexNormals[hashVertex];
+                    if (invertNormals) {
+                        normal = -normal;
+                    }
+                    start = t * e.start;
+                    end = start - (t * normal);
+                    start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
+                    end = Vec4(end.x / end.w, end.y / end.w, end.z / end.w, 1);
+                    drawLine(start, end, normalColor);
+                }
+                break;
+            case ID_NORMAL_VERTICES_GIVEN:
+                for (Edge e : p.edges) {
+                    if (!(e.start.normalX == 0 && e.start.normalY == 0 && e.start.normalZ == 0)) {
+                        normal = Vec4(e.start.normalX, e.start.normalY, e.start.normalZ, 0);
+                        if (invertNormals) {
+                            normal = -normal;
+                        }
+                        start = t * e.start;
+                        end = start + (t * normal);
+                        start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
+                        end = Vec4(end.x / end.w, end.y / end.w, end.z / end.w, 1);
+                        drawLine(start, end, normalColor);
+                    }
+                }
+                break;
+            default:
+                break;
+            }
+            // Draw the silhouette of the object:
+            if (drawSilhouette) {
+                for (Edge e : p.edges) {
+                    vector<int> hashStart;
+                    hashStart.push_back((int)(e.start.x * HASH_PRECISION));
+                    hashStart.push_back((int)(e.start.y * HASH_PRECISION));
+                    hashStart.push_back((int)(e.start.z * HASH_PRECISION));
+                    vector<int> hashEnd;
+                    hashEnd.push_back((int)(e.end.x * HASH_PRECISION));
+                    hashEnd.push_back((int)(e.end.y * HASH_PRECISION));
+                    hashEnd.push_back((int)(e.end.z * HASH_PRECISION));
+                    vector<Vec4> polyNormalsAdjToStart = vertexAdjPolygonNormals[hashStart];
+                    vector<Vec4> polyNormalsAdjToEnd = vertexAdjPolygonNormals[hashEnd];
+                    Vec4 polyNormal1, polyNormal2;
+                    int pns = 0;
+                    for (Vec4 polyNormalStart : polyNormalsAdjToStart) {
+                        if (pns == 2) {
+                            break;
+                        }
+                        for (Vec4 polyNormalEnd : polyNormalsAdjToEnd) {
+                            if (polyNormalEnd == polyNormalStart) {
+                                if (pns == 0) {
+                                    polyNormal1 = t * polyNormalStart;
+                                    pns++;
+                                    break;
+                                } else if (polyNormal1 != polyNormalStart) {
+                                    polyNormal2 = t * polyNormalStart;
+                                    pns++;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    if (pns == 2) {
+                        double dot = polyNormal1.z * polyNormal2.z;
+                        if (dot < 0) {
+                            // Edge is silhouette, draw it:
+                            Vec4 start = t * e.start;
+                            start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
+                            Vec4 end = t * e.end;
+                            end = Vec4(end.x / end.w, end.y / end.w, end.z / end.w, 1);
+                            drawLine(start, end, silhouetteColor);
+                        }
+                    }
+                }
+            }
+        }
+        for (GraphicPolygon p : o.polygons) {
             // Draw the edges of the polygon:
             vector<Edge> projectedEdges;
             if (bonusBackfaceCulling) {
@@ -536,101 +631,7 @@ void CCGWorkView::RenderScene(int width, int height)
                 }
             }
         }
-        for (GraphicPolygon p : o.polygons) {
-            // Draw the normals of the polygon:
-            Vec4 normal, v0, v1, start, end, direction;
-            Edge ne;
-            switch (drawNormals) {
-            case ID_NORMAL_POLYGONS_CALCULATED:
-                ne = getNormalToPolygon(p, t, true);
-                drawLine(ne.start, ne.end, normalColor);
-                break;
-            case ID_NORMAL_POLYGONS_GIVEN:
-                ne = getNormalToPolygon(p, t, false);
-                drawLine(ne.start, ne.end, normalColor);
-                break;
-            case ID_NORMAL_VERTICES_CALCULATED:
-                for (Edge e : p.edges) {
-                    vector<int> hashVertex;
-                    hashVertex.push_back((int)(e.start.x * HASH_PRECISION));
-                    hashVertex.push_back((int)(e.start.y * HASH_PRECISION));
-                    hashVertex.push_back((int)(e.start.z * HASH_PRECISION));
-                    normal = vertexNormals[hashVertex];
-                    if (invertNormals) {
-                        normal = -normal;
-                    }
-                    start = t * e.start;
-                    end = start - (t * normal);
-                    start = Vec4(start.x / start.w, start.y / start.w, DBL_MIN, 1);
-                    end = Vec4(end.x / end.w, end.y / end.w, DBL_MIN, 1);
-                    drawLine(start, end, normalColor);
-                }
-                break;
-            case ID_NORMAL_VERTICES_GIVEN:
-                for (Edge e : p.edges) {
-                    if (!(e.start.normalX == 0 && e.start.normalY == 0 && e.start.normalZ == 0)) {
-                        normal = Vec4(e.start.normalX, e.start.normalY, e.start.normalZ, 0);
-                        if (invertNormals) {
-                            normal = -normal;
-                        }
-                        start = t * e.start;
-                        end = start + (t * normal);
-                        start = Vec4(start.x / start.w, start.y / start.w, DBL_MIN, 1);
-                        end = Vec4(end.x / end.w, end.y / end.w, DBL_MIN, 1);
-                        drawLine(start, end, normalColor);
-                    }
-                }
-                break;
-            default:
-                break;
-            }
-            // Draw the silhouette of the object:
-            if (drawSilhouette) {
-                for (Edge e : p.edges) {
-                    vector<int> hashStart;
-                    hashStart.push_back((int)(e.start.x * HASH_PRECISION));
-                    hashStart.push_back((int)(e.start.y * HASH_PRECISION));
-                    hashStart.push_back((int)(e.start.z * HASH_PRECISION));
-                    vector<int> hashEnd;
-                    hashEnd.push_back((int)(e.end.x * HASH_PRECISION));
-                    hashEnd.push_back((int)(e.end.y * HASH_PRECISION));
-                    hashEnd.push_back((int)(e.end.z * HASH_PRECISION));
-                    vector<Vec4> polyNormalsAdjToStart = vertexAdjPolygonNormals[hashStart];
-                    vector<Vec4> polyNormalsAdjToEnd = vertexAdjPolygonNormals[hashEnd];
-                    Vec4 polyNormal1, polyNormal2;
-                    int pns = 0;
-                    for (Vec4 polyNormalStart : polyNormalsAdjToStart) {
-                        if (pns == 2) {
-                            break;
-                        }
-                        for (Vec4 polyNormalEnd : polyNormalsAdjToEnd) {
-                            if (polyNormalEnd == polyNormalStart) {
-                                if (pns == 0) {
-                                    polyNormal1 = t*polyNormalStart;
-                                    pns++;
-                                    break;
-                                } else if (polyNormal1 != polyNormalStart) {
-                                    polyNormal2 = t*polyNormalStart;
-                                    pns++;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                    if (pns == 2) {
-                        double dot = polyNormal1.z * polyNormal2.z;
-                        if (dot < 0) {
-                            // Edge is silhouette, draw it:
-                            Vec4 start = t * e.start;
-                            start = Vec4(start.x / start.w, start.y / start.w, DBL_MIN, 1);
-                            Vec4 end = t * e.end;
-                            end = Vec4(end.x / end.w, end.y / end.w, DBL_MIN, 1);
-                            drawLine(start, end, silhouetteColor);
-                        }
-                    }
-                }
-            }
-        }
+        
         // Draw the bounding box of the object:
         if (drawBoundingBox) {
             for (Edge e : o.boundingBox) {
