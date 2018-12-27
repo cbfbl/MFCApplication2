@@ -159,6 +159,8 @@ protected:
 	afx_msg void OnUpdateLightShadingFlat(CCmdUI* pCmdUI);
 	afx_msg void OnLightShadingGouraud();
 	afx_msg void OnUpdateLightShadingGouraud(CCmdUI* pCmdUI);
+	afx_msg void OnLightShadingPhong();
+	afx_msg void OnUpdateLightShadingPhong(CCmdUI* pCmdUI);
 	afx_msg void OnLightConstants();
 	afx_msg void OnMaterialConstants();
 	//}}AFX_MSG
@@ -205,6 +207,7 @@ public:
     afx_msg void OnBgClear();
 
     afx_msg void OnOptionsWireframecolor();
+    afx_msg void OnOptionsSilhouettecolor();
     afx_msg void OnOptionsNormalscolor();
     afx_msg void OnOptionsBackgroundcolor();
 	afx_msg void OnUpdateActionView(CCmdUI *pCmdUI);

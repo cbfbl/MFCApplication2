@@ -65,6 +65,8 @@ ON_COMMAND(ID_LIGHT_SHADING_FLAT, OnLightShadingFlat)
 ON_UPDATE_COMMAND_UI(ID_LIGHT_SHADING_FLAT, OnUpdateLightShadingFlat)
 ON_COMMAND(ID_LIGHT_SHADING_GOURAUD, OnLightShadingGouraud)
 ON_UPDATE_COMMAND_UI(ID_LIGHT_SHADING_GOURAUD, OnUpdateLightShadingGouraud)
+ON_COMMAND(ID_LIGHT_SHADING_PHONG, OnLightShadingPhong)
+ON_UPDATE_COMMAND_UI(ID_LIGHT_SHADING_PHONG, OnUpdateLightShadingPhong)
 ON_COMMAND(ID_LIGHT_CONSTANTS, OnLightConstants)
 ON_COMMAND(ID_LIGHT_MATERIAL, OnMaterialConstants)
 ON_COMMAND(ID_OPTIONS_MOUSESENSITIVITY, OnOptionsMousesensitivity)
@@ -85,6 +87,7 @@ ON_UPDATE_COMMAND_UI(ID_NORMALS_NONE, OnUpdateNormalNone)
 ON_COMMAND(ID_VIEW_INVERTEDNORMALS, OnInvertedNormals)
 ON_UPDATE_COMMAND_UI(ID_VIEW_INVERTEDNORMALS, OnUpdateInvertedNormals)
 ON_COMMAND(ID_OPTIONS_WIREFRAMECOLOR, OnOptionsWireframecolor)
+ON_COMMAND(ID_OPTIONS_SILHOUETTE_COLOR, OnOptionsSilhouettecolor)
 ON_COMMAND(ID_OPTIONS_NORMALSCOLOR, OnOptionsNormalscolor)
 ON_COMMAND(ID_OPTIONS_BACKGROUNDCOLOR, OnOptionsBackgroundcolor)
 ON_UPDATE_COMMAND_UI(ID_ACTION_VIEW, OnUpdateActionView)
@@ -170,7 +173,7 @@ CCGWorkView::CCGWorkView()
     normalsColor = RGB(0, 0, 0);
     useCustomNormalsColor = false;
     backgroundColor = RGB(255, 255, 255);
-    silhouetteColor = RGB(255, 0, 144);
+    silhouetteColor = RGB(255, 255, 0);
     object = false;
     d = 2.71828;
     a = 1;
@@ -458,8 +461,7 @@ void CCGWorkView::RenderScene(int width, int height)
                     COLORREF shadedColor = RGB(
                         (GetRValue(sstart) + GetRValue(send)) / 2,
                         (GetGValue(sstart) + GetGValue(send)) / 2,
-                        (GetBValue(sstart) + GetBValue(send)) / 2
-                    );
+                        (GetBValue(sstart) + GetBValue(send)) / 2);
                     drawLine(start, end, shadedColor);
                 } else {
                     drawLine(start, end, objectColor);
@@ -502,7 +504,7 @@ void CCGWorkView::RenderScene(int width, int height)
                     Edge r_edge = edge_intersections[k + 1].second;
                     double z1 = l_edge.getZ(l_x, y);
                     double z2 = r_edge.getZ(r_x, y);
-                    Edge scan_edge; 
+                    Edge scan_edge;
                     if (renderScreen) {
                         scan_edge = Edge(Vec4(l_x, y, z1, 1), Vec4(r_x, y, z2, 1));
                     } else {
@@ -537,7 +539,7 @@ void CCGWorkView::RenderScene(int width, int height)
         for (GraphicPolygon p : o.polygons) {
             // Draw the normals of the polygon:
             Vec4 normal, v0, v1, start, end, direction;
-            Edge ne; 
+            Edge ne;
             switch (drawNormals) {
             case ID_NORMAL_POLYGONS_CALCULATED:
                 ne = getNormalToPolygon(p, t, true);
@@ -582,6 +584,52 @@ void CCGWorkView::RenderScene(int width, int height)
             default:
                 break;
             }
+            // Draw the silhouette of the object:
+            if (drawSilhouette) {
+                for (Edge e : p.edges) {
+                    vector<int> hashStart;
+                    hashStart.push_back((int)(e.start.x * HASH_PRECISION));
+                    hashStart.push_back((int)(e.start.y * HASH_PRECISION));
+                    hashStart.push_back((int)(e.start.z * HASH_PRECISION));
+                    vector<int> hashEnd;
+                    hashEnd.push_back((int)(e.end.x * HASH_PRECISION));
+                    hashEnd.push_back((int)(e.end.y * HASH_PRECISION));
+                    hashEnd.push_back((int)(e.end.z * HASH_PRECISION));
+                    vector<Vec4> polyNormalsAdjToStart = vertexAdjPolygonNormals[hashStart];
+                    vector<Vec4> polyNormalsAdjToEnd = vertexAdjPolygonNormals[hashEnd];
+                    Vec4 polyNormal1, polyNormal2;
+                    int pns = 0;
+                    for (Vec4 polyNormalStart : polyNormalsAdjToStart) {
+                        if (pns == 2) {
+                            break;
+                        }
+                        for (Vec4 polyNormalEnd : polyNormalsAdjToEnd) {
+                            if (polyNormalEnd == polyNormalStart) {
+                                if (pns == 0) {
+                                    polyNormal1 = t*polyNormalStart;
+                                    pns++;
+                                    break;
+                                } else if (polyNormal1 != polyNormalStart) {
+                                    polyNormal2 = t*polyNormalStart;
+                                    pns++;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    if (pns == 2) {
+                        double dot = polyNormal1.z * polyNormal2.z;
+                        if (dot < 0) {
+                            // Edge is silhouette, draw it:
+                            Vec4 start = t * e.start;
+                            start = Vec4(start.x / start.w, start.y / start.w, DBL_MIN, 1);
+                            Vec4 end = t * e.end;
+                            end = Vec4(end.x / end.w, end.y / end.w, DBL_MIN, 1);
+                            drawLine(start, end, silhouetteColor);
+                        }
+                    }
+                }
+            }
         }
         // Draw the bounding box of the object:
         if (drawBoundingBox) {
@@ -593,33 +641,33 @@ void CCGWorkView::RenderScene(int width, int height)
                 drawLine(start, end, objectColor);
             }
         }
-        // Draw the silhouette of the object:
-        if (drawSilhouette) {
-            for (auto it = o.edgePolygons.begin(); it != o.edgePolygons.end(); it++) {
-                if (it->second.first == -1 || it->second.second == -1) {
-                    continue;
-                }
-                GraphicPolygon p0 = o.polygons[it->second.first];
-                GraphicPolygon p1 = o.polygons[it->second.second];
-                Edge ne0 = getNormalToPolygon(p0, t, useCalculateNormals);
-                Vec4 normal0 = (ne0.end - ne0.start).normalize();
-                Edge ne1 = getNormalToPolygon(p1, t, useCalculateNormals);
-                Vec4 normal1 = (ne1.end - ne1.start).normalize();
-                double dot = normal0 * normal1;
-                if (dot < 0) {
-                    // Edge is silhouette, draw it:
-                    auto hashEdgeStart = it->first.first;
-                    auto hashEdgeEnd = it->first.second;
-                    Edge e(Vec4(hashEdgeStart[0], hashEdgeStart[1], hashEdgeStart[2], HASH_PRECISION) * (1.0 / HASH_PRECISION),
-                        Vec4(hashEdgeEnd[0], hashEdgeEnd[1], hashEdgeEnd[2], HASH_PRECISION) * (1.0 / HASH_PRECISION));
-                    Vec4 start = t * e.start;
-                    start = Vec4(start.x / start.w, start.y / start.w, DBL_MIN, 1);
-                    Vec4 end = t * e.end;
-                    end = Vec4(end.x / end.w, end.y / end.w, DBL_MIN, 1);
-                    drawLine(start, end, silhouetteColor);
-                }
-            }
-        }
+        // Draw the silhouette of the object: TODO: REMOVE/////////////////////////////
+        //if (drawSilhouette) {
+        //    for (auto it = o.edgePolygons.begin(); it != o.edgePolygons.end(); it++) {
+        //        if (it->second.first == -1 || it->second.second == -1) {
+        //            continue;
+        //        }
+        //        GraphicPolygon p0 = o.polygons[it->second.first];
+        //        GraphicPolygon p1 = o.polygons[it->second.second];
+        //        Edge ne0 = getNormalToPolygon(p0, t, useCalculateNormals);
+        //        Vec4 normal0 = (ne0.end - ne0.start).normalize();
+        //        Edge ne1 = getNormalToPolygon(p1, t, useCalculateNormals);
+        //        Vec4 normal1 = (ne1.end - ne1.start).normalize();
+        //        double dot = normal0 * normal1;
+        //        if (dot < 0) {
+        //            // Edge is silhouette, draw it:
+        //            auto hashEdgeStart = it->first.first;
+        //            auto hashEdgeEnd = it->first.second;
+        //            Edge e(Vec4(hashEdgeStart[0], hashEdgeStart[1], hashEdgeStart[2], HASH_PRECISION) * (1.0 / HASH_PRECISION),
+        //                Vec4(hashEdgeEnd[0], hashEdgeEnd[1], hashEdgeEnd[2], HASH_PRECISION) * (1.0 / HASH_PRECISION));
+        //            Vec4 start = t * e.start;
+        //            start = Vec4(start.x / start.w, start.y / start.w, DBL_MIN, 1);
+        //            Vec4 end = t * e.end;
+        //            end = Vec4(end.x / end.w, end.y / end.w, DBL_MIN, 1);
+        //            drawLine(start, end, silhouetteColor);
+        //        }
+        //    }
+        //}
     }
 }
 
@@ -774,12 +822,6 @@ void CCGWorkView::OnFileLoad()
     CFileDialog dlg(TRUE, _T("itd"), _T("*.itd"), OFN_FILEMUSTEXIST | OFN_HIDEREADONLY, szFilters);
 
     if (dlg.DoModal() == IDOK) {
-       /* for (GraphicObject o : graphicObjects) {
-            for (size_t i = 0; i < o.polygons.size(); i++) {
-                delete &o.polygons[i];
-            }
-        }*/
-
         m_strItdFileName = dlg.GetPathName(); // Full path and filename
         graphicObjects.clear();
         CGSkelProcessIritDataFiles(m_strItdFileName, 1);
@@ -944,6 +986,15 @@ void CCGWorkView::OnLightShadingGouraud()
 void CCGWorkView::OnUpdateLightShadingGouraud(CCmdUI* pCmdUI)
 {
     pCmdUI->SetCheck(m_nLightShading == ID_LIGHT_SHADING_GOURAUD);
+}
+void CCGWorkView::OnLightShadingPhong()
+{
+    m_nLightShading = ID_SHADING_PHONG;
+}
+
+void CCGWorkView::OnUpdateLightShadingPhong(CCmdUI* pCmdUI)
+{
+    pCmdUI->SetCheck(m_nLightShading == ID_SHADING_PHONG);
 }
 
 // LIGHT SETUP HANDLER ///////////////////////////////////////////
@@ -1184,6 +1235,17 @@ void CCGWorkView::OnOptionsWireframecolor()
     if (colorDialog.DoModal() == IDOK) {
         wireframeColor = colorDialog.GetColor();
         useCustomWireframeColor = true;
+        Invalidate();
+    }
+}
+
+void CCGWorkView::OnOptionsSilhouettecolor()
+{
+    CColorDialog colorDialog;
+    colorDialog.m_cc.Flags |= CC_RGBINIT;
+    colorDialog.m_cc.rgbResult = silhouetteColor;
+    if (colorDialog.DoModal() == IDOK) {
+        silhouetteColor = colorDialog.GetColor();
         Invalidate();
     }
 }

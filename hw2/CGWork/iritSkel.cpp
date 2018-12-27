@@ -60,7 +60,7 @@ bool CGSkelProcessIritDataFiles(CString& FileNames, int NumFiles)
 {
     IPObjectStruct* PObjects;
     IrtHmgnMatType CrntViewMat;
-
+    vertexAdjPolygonNormals.clear();
     /* Get the data files: */
     IPSetFlattenObjects(FALSE);
     CStringA CStr(FileNames);

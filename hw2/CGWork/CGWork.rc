@@ -118,6 +118,7 @@ BEGIN
         MENUITEM "Perspective Control...",      ID_OPTIONS_PERSPECTIVECONTROL
         MENUITEM "Mouse Sensitivity...",        ID_OPTIONS_MOUSESENSITIVITY
         MENUITEM "Wireframe Color...",          ID_OPTIONS_WIREFRAMECOLOR
+        MENUITEM "Silhouette Color...",         ID_OPTIONS_SILHOUETTE_COLOR
         MENUITEM "Normals Color...",            ID_OPTIONS_NORMALSCOLOR
         MENUITEM "Background Color...",         ID_OPTIONS_BACKGROUNDCOLOR
         MENUITEM "FineNess...",                 ID_OPTIONS_FINENESS
@@ -130,6 +131,7 @@ BEGIN
         BEGIN
             MENUITEM "&Flat",                       ID_LIGHT_SHADING_FLAT
             MENUITEM "&Gouraud",                    ID_LIGHT_SHADING_GOURAUD
+            MENUITEM "Phong",                       ID_SHADING_PHONG
         END
         MENUITEM "&Parameters...",              ID_LIGHT_CONSTANTS
         MENUITEM "Material...",                 ID_LIGHT_MATERIAL
