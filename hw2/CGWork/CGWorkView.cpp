@@ -450,7 +450,20 @@ void CCGWorkView::RenderScene(int width, int height)
                 start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
                 Vec4 end = t * e.end;
                 end = Vec4(end.x / end.w, end.y / end.w, end.z / end.w, 1);
-                drawLine(start, end, objectColor);
+                if (renderScreen) {
+                    Edge ne = getNormalToPolygon(p, t, useCalculateNormals);
+                    Vec4 normal = (ne.end - ne.start).normalize();
+                    COLORREF sstart = getColorAfterShading(start, normal, objectColor, t);
+                    COLORREF send = getColorAfterShading(end, normal, objectColor, t);
+                    COLORREF shadedColor = RGB(
+                        (GetRValue(sstart) + GetRValue(send)) / 2,
+                        (GetGValue(sstart) + GetGValue(send)) / 2,
+                        (GetBValue(sstart) + GetBValue(send)) / 2
+                    );
+                    drawLine(start, end, shadedColor);
+                } else {
+                    drawLine(start, end, objectColor);
+                }
             }
         }
         for (GraphicPolygon p : o.polygons) {
