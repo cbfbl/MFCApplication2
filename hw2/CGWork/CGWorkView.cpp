@@ -454,32 +454,14 @@ void CCGWorkView::RenderScene(int width, int height)
                 break;
             case ID_NORMAL_VERTICES_CALCULATED:
                 for (Edge e : p.edges) {
-                    vector<int> hashVertex;
-                    hashVertex.push_back((int)(e.start.x * HASH_PRECISION));
-                    hashVertex.push_back((int)(e.start.y * HASH_PRECISION));
-                    hashVertex.push_back((int)(e.start.z * HASH_PRECISION));
-                    normal = vertexNormals[hashVertex];
-                    if (invertNormals) {
-                        normal = -normal;
-                    }
-                    start = t * e.start;
-                    end = start - (t * normal);
-                    start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
-                    end = Vec4(end.x / end.w, end.y / end.w, end.z / end.w, 1);
+                    ne = getNormalToVertex(e, t, true);
                     drawLine(start, end, normalColor);
                 }
                 break;
             case ID_NORMAL_VERTICES_GIVEN:
                 for (Edge e : p.edges) {
                     if (!(e.start.normalX == 0 && e.start.normalY == 0 && e.start.normalZ == 0)) {
-                        normal = Vec4(e.start.normalX, e.start.normalY, e.start.normalZ, 0);
-                        if (invertNormals) {
-                            normal = -normal;
-                        }
-                        start = t * e.start;
-                        end = start + (t * normal);
-                        start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
-                        end = Vec4(end.x / end.w, end.y / end.w, end.z / end.w, 1);
+                        ne = getNormalToVertex(e, t, false);
                         drawLine(start, end, normalColor);
                     }
                 }
@@ -597,35 +579,37 @@ void CCGWorkView::RenderScene(int width, int height)
                     double r_x = edge_intersections[k + 1].first;
                     Edge l_edge = edge_intersections[k].second;
                     Edge r_edge = edge_intersections[k + 1].second;
-                    double z1 = l_edge.getZ(l_x, y);
-                    double z2 = r_edge.getZ(r_x, y);
+                    double l_z = l_edge.getZ(l_x, y);
+                    double r_z = r_edge.getZ(r_x, y);
                     Edge scan_edge;
                     if (renderScreen) {
-                        scan_edge = Edge(Vec4(l_x, y, z1, 1), Vec4(r_x, y, z2, 1));
+                        scan_edge = Edge(Vec4(l_x, y, l_z, 1), Vec4(r_x, y, r_z, 1));
                     } else {
-                        scan_edge = Edge(Vec4(l_x + 1, y, z1, 1), Vec4(r_x - 1, y, z2, 1));
+                        scan_edge = Edge(Vec4(l_x + 1, y, l_z, 1), Vec4(r_x - 1, y, r_z, 1));
                     }
-                    //drawLine(scan_edge.start, scan_edge.end, backgroundColor, dc);
-
                     for (double current_x = scan_edge.start.x; current_x < scan_edge.end.x; current_x++) {
                         double current_z = scan_edge.getZ(current_x, y);
                         if (cullBackfaces) {
                             if ((current_x < zbuffer.size() && current_x >= 0 && y >= 0 && y < zbuffer[0].size()) && current_z < zbuffer[current_x][y]) {
                                 zbuffer[current_x][y] = current_z;
                                 if (renderScreen) {
-                                    Edge ne = getNormalToPolygon(p, t, useCalculateNormals);
-                                    Vec4 normal = (ne.end - ne.start).normalize();
-                                    COLORREF shadedColor = getColorAfterShading(Vec4(current_x, y, current_z, 1), normal, objectColor, t);
-                                    cbuffer[current_x][y] = shadedColor;
+                                    if (m_nLightShading == ID_LIGHT_SHADING_FLAT) {
+                                        Edge ne = getNormalToPolygon(p, t, useCalculateNormals);
+                                        Vec4 normal = (ne.end - ne.start).normalize();
+                                        COLORREF shadedColor = getColorAfterShading(t*p.center, normal, objectColor, t);
+                                        cbuffer[current_x][y] = shadedColor;
+                                    }
                                 } else {
                                     cbuffer[current_x][y] = backgroundColor;
                                 }
                             }
                         } else if (renderScreen) {
-                            Edge ne = getNormalToPolygon(p, t, useCalculateNormals);
-                            Vec4 normal = (ne.end - ne.start).normalize();
-                            COLORREF shadedColor = getColorAfterShading(Vec4(current_x, y, current_z, 1), normal, objectColor, t);
-                            cbuffer[current_x][y] = shadedColor;
+                            if (m_nLightShading == ID_LIGHT_SHADING_FLAT) {
+                                Edge ne = getNormalToPolygon(p, t, useCalculateNormals);
+                                Vec4 normal = (ne.end - ne.start).normalize();
+                                COLORREF shadedColor = getColorAfterShading(Vec4(current_x, y, current_z, 1), normal, objectColor, t);
+                                cbuffer[current_x][y] = shadedColor;
+                            }
                         }
                     }
                 }
@@ -642,33 +626,6 @@ void CCGWorkView::RenderScene(int width, int height)
                 drawLine(start, end, objectColor);
             }
         }
-        // Draw the silhouette of the object: TODO: REMOVE/////////////////////////////
-        //if (drawSilhouette) {
-        //    for (auto it = o.edgePolygons.begin(); it != o.edgePolygons.end(); it++) {
-        //        if (it->second.first == -1 || it->second.second == -1) {
-        //            continue;
-        //        }
-        //        GraphicPolygon p0 = o.polygons[it->second.first];
-        //        GraphicPolygon p1 = o.polygons[it->second.second];
-        //        Edge ne0 = getNormalToPolygon(p0, t, useCalculateNormals);
-        //        Vec4 normal0 = (ne0.end - ne0.start).normalize();
-        //        Edge ne1 = getNormalToPolygon(p1, t, useCalculateNormals);
-        //        Vec4 normal1 = (ne1.end - ne1.start).normalize();
-        //        double dot = normal0 * normal1;
-        //        if (dot < 0) {
-        //            // Edge is silhouette, draw it:
-        //            auto hashEdgeStart = it->first.first;
-        //            auto hashEdgeEnd = it->first.second;
-        //            Edge e(Vec4(hashEdgeStart[0], hashEdgeStart[1], hashEdgeStart[2], HASH_PRECISION) * (1.0 / HASH_PRECISION),
-        //                Vec4(hashEdgeEnd[0], hashEdgeEnd[1], hashEdgeEnd[2], HASH_PRECISION) * (1.0 / HASH_PRECISION));
-        //            Vec4 start = t * e.start;
-        //            start = Vec4(start.x / start.w, start.y / start.w, DBL_MIN, 1);
-        //            Vec4 end = t * e.end;
-        //            end = Vec4(end.x / end.w, end.y / end.w, DBL_MIN, 1);
-        //            drawLine(start, end, silhouetteColor);
-        //        }
-        //    }
-        //}
     }
 }
 
@@ -728,6 +685,35 @@ void CCGWorkView::drawLine(Vec4& start, Vec4& end, COLORREF color)
     }
 }
 
+Edge CCGWorkView::getNormalToVertex(Edge& e, Mat4& t, bool calculated)
+{
+    Vec4 normal, v0, v1, start, end, direction;
+    if (calculated) {
+        vector<int> hashVertex;
+        hashVertex.push_back((int)(e.start.x * HASH_PRECISION));
+        hashVertex.push_back((int)(e.start.y * HASH_PRECISION));
+        hashVertex.push_back((int)(e.start.z * HASH_PRECISION));
+        normal = vertexNormals[hashVertex];
+        if (invertNormals) {
+            normal = -normal;
+        }
+        start = t * e.start;
+        end = start - (t * normal);
+        start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
+        end = Vec4(end.x / end.w, end.y / end.w, end.z / end.w, 1);
+        return Edge(start, end);
+    } else {
+        normal = Vec4(e.start.normalX, e.start.normalY, e.start.normalZ, 0);
+        if (invertNormals) {
+            normal = -normal;
+        }
+        start = t * e.start;
+        end = start + (t * normal);
+        start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
+        end = Vec4(end.x / end.w, end.y / end.w, end.z / end.w, 1);
+        return Edge(start, end);
+    }
+}
 Edge CCGWorkView::getNormalToPolygon(GraphicPolygon& p, Mat4& t, bool calculated)
 {
     Vec4 normal, v0, v1, start, end, direction;
@@ -784,9 +770,9 @@ COLORREF CCGWorkView::getColorAfterShading(Vec4& point, Vec4& normal, COLORREF c
             double RV = cos(acos(pointDotLight) - 2 * acos(pointDotLight));
             double RVn = pow(RV, m_nMaterialCosineFactor);
             double kp = (m_lMaterialDiffuse * NL + m_lMaterialSpecular * RVn); // (Kd * <N, L> + Ks * <R, V>^n)
-            factorR += (light.colorR / 255.0) * kp; // Ip * (Kd * <N, L> + Ks * <R, V>^n)
-            factorG += (light.colorG / 255.0) * kp; // Ip * (Kd * <N, L> + Ks * <R, V>^n)
-            factorB += (light.colorB / 255.0) * kp; // Ip * (Kd * <N, L> + Ks * <R, V>^n)
+            factorR += (light.colorR / 255.0) * m_lMaterialDiffuse * NL + m_lMaterialSpecular * RVn; // Ip * (Kd * <N, L> + Ks * <R, V>^n)
+            factorG += (light.colorG / 255.0) * m_lMaterialDiffuse * NL + m_lMaterialSpecular * RVn; // Ip * (Kd * <N, L> + Ks * <R, V>^n)
+            factorB += (light.colorB / 255.0) * m_lMaterialDiffuse * NL + m_lMaterialSpecular * RVn; // Ip * (Kd * <N, L> + Ks * <R, V>^n)
         }
     }
     factorR = max(0, min(factorR, 1));
@@ -972,6 +958,7 @@ void CCGWorkView::OnUpdateAxisXy(CCmdUI* pCmdUI)
 void CCGWorkView::OnLightShadingFlat()
 {
     m_nLightShading = ID_LIGHT_SHADING_FLAT;
+    Invalidate();
 }
 
 void CCGWorkView::OnUpdateLightShadingFlat(CCmdUI* pCmdUI)
@@ -982,6 +969,7 @@ void CCGWorkView::OnUpdateLightShadingFlat(CCmdUI* pCmdUI)
 void CCGWorkView::OnLightShadingGouraud()
 {
     m_nLightShading = ID_LIGHT_SHADING_GOURAUD;
+    Invalidate();
 }
 
 void CCGWorkView::OnUpdateLightShadingGouraud(CCmdUI* pCmdUI)
@@ -991,6 +979,7 @@ void CCGWorkView::OnUpdateLightShadingGouraud(CCmdUI* pCmdUI)
 void CCGWorkView::OnLightShadingPhong()
 {
     m_nLightShading = ID_SHADING_PHONG;
+    Invalidate();
 }
 
 void CCGWorkView::OnUpdateLightShadingPhong(CCmdUI* pCmdUI)
