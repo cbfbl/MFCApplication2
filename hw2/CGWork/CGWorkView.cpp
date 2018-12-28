@@ -508,9 +508,21 @@ void CCGWorkView::RenderScene(int width, int height)
                             // Edge is silhouette, draw it:
                             Vec4 start = t * e.start;
                             start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
+							Vec4 start2 = Vec4(start.x / start.w, start.y+1 / start.w, start.z / start.w, 1);
+							Vec4 start3 = Vec4(start.x / start.w, start.y-1 / start.w, start.z / start.w, 1);
+							Vec4 start4 = Vec4(start.x / start.w, start.y+2 / start.w, start.z / start.w, 1);
+							Vec4 start5 = Vec4(start.x / start.w, start.y-2 / start.w, start.z / start.w, 1);
                             Vec4 end = t * e.end;
                             end = Vec4(end.x / end.w, end.y / end.w, end.z / end.w, 1);
+							Vec4 end2 = Vec4(end.x / end.w, end.y+1 / end.w, end.z / end.w, 1);
+							Vec4 end3 = Vec4(end.x / end.w, end.y-1 / end.w, end.z / end.w, 1);
+							Vec4 end4 = Vec4(end.x / end.w, end.y+2 / end.w, end.z / end.w, 1);
+							Vec4 end5 = Vec4(end.x / end.w, end.y-2 / end.w, end.z / end.w, 1);
                             drawLine(start, end, silhouetteColor);
+                            drawLine(start2, end2, silhouetteColor);
+                            drawLine(start3, end3, silhouetteColor);
+                            drawLine(start4, end4, silhouetteColor);
+                            drawLine(start5, end5, silhouetteColor);
                         }
                     }
                 }
