@@ -531,21 +531,27 @@ void CCGWorkView::RenderScene(int width, int height)
                 Vec4 end = t * e.end;
                 end = Vec4(end.x / end.w, end.y / end.w, end.z / end.w, 1);
                 if (renderScreen) {
-                    Edge ne = getNormalToPolygon(p, t, useCalculateNormals);
-                    Vec4 normal = (ne.end - ne.start).normalize();
-                    COLORREF sstart = getColorAfterShading(start, normal, objectColor, t);
-                    COLORREF send = getColorAfterShading(end, normal, objectColor, t);
-                    COLORREF shadedColor = RGB(
-                        (GetRValue(sstart) + GetRValue(send)) / 2,
-                        (GetGValue(sstart) + GetGValue(send)) / 2,
-                        (GetBValue(sstart) + GetBValue(send)) / 2);
-                    drawLine(start, end, shadedColor);
+                    //Edge ne = getNormalToPolygon(p, t, useCalculateNormals);
+                    //Vec4 normal = (ne.end - ne.start).normalize();
+                    //COLORREF sstart = getColorAfterShading(start, normal, objectColor, t);
+                    //COLORREF send = getColorAfterShading(end, normal, objectColor, t);
+                    //COLORREF shadedColor = RGB(
+                    //    (GetRValue(sstart) + GetRValue(send)) / 2,
+                    //    (GetGValue(sstart) + GetGValue(send)) / 2,
+                    //    (GetBValue(sstart) + GetBValue(send)) / 2);
+                    //drawLine(start, end, shadedColor);
                 } else {
                     drawLine(start, end, objectColor);
                 }
             }
         }
         for (GraphicPolygon p : o.polygons) {
+            COLORREF flatShadeingColor;
+            if (m_nLightShading == ID_LIGHT_SHADING_FLAT) {
+                Edge ne = getNormalToPolygon(p, t, useCalculateNormals);
+                flatShadeingColor = getColorAfterShading(ne, objectColor, t);
+            }
+
             vector<Edge> projectedEdges;
             int y_min = INT_MAX;
             int y_max = INT_MIN;
@@ -594,28 +600,25 @@ void CCGWorkView::RenderScene(int width, int height)
                                 zbuffer[current_x][y] = current_z;
                                 if (renderScreen) {
                                     if (m_nLightShading == ID_LIGHT_SHADING_FLAT) {
-                                        Edge ne = getNormalToPolygon(p, t, useCalculateNormals);
-                                        Vec4 normal = (ne.end - ne.start).normalize();
-                                        COLORREF shadedColor = getColorAfterShading(t*p.center, normal, objectColor, t);
-                                        cbuffer[current_x][y] = shadedColor;
+                                        cbuffer[current_x][y] = flatShadeingColor;
                                     }
                                 } else {
                                     cbuffer[current_x][y] = backgroundColor;
                                 }
                             }
                         } else if (renderScreen) {
-                            if (m_nLightShading == ID_LIGHT_SHADING_FLAT) {
-                                Edge ne = getNormalToPolygon(p, t, useCalculateNormals);
-                                Vec4 normal = (ne.end - ne.start).normalize();
-                                COLORREF shadedColor = getColorAfterShading(Vec4(current_x, y, current_z, 1), normal, objectColor, t);
-                                cbuffer[current_x][y] = shadedColor;
-                            }
+                            // TODO: implement me!
+                            //if (m_nLightShading == ID_LIGHT_SHADING_FLAT) {
+                            //    Edge ne = getNormalToPolygon(p, t, useCalculateNormals);
+                            //    COLORREF shadedColor = getColorAfterShading(ne, objectColor, t);
+                            //    cbuffer[current_x][y] = shadedColor;
+                            //}
                         }
                     }
                 }
             }
         }
-        
+
         // Draw the bounding box of the object:
         if (drawBoundingBox) {
             for (Edge e : o.boundingBox) {
@@ -742,49 +745,72 @@ Edge CCGWorkView::getNormalToPolygon(GraphicPolygon& p, Mat4& t, bool calculated
     }
 }
 
-COLORREF CCGWorkView::getColorAfterShading(Vec4& point, Vec4& normal, COLORREF color, Mat4& t)
+COLORREF CCGWorkView::getColorAfterShading(Edge& ne, COLORREF objectColor, Mat4& t)
 {
-    // Ambient lighting:
-    double factorR = (m_ambientLight.colorR / 255.0) * m_lMaterialAmbient; // Ia * Ka
-    double factorG = (m_ambientLight.colorG / 255.0) * m_lMaterialAmbient; // Ia * Ka
-    double factorB = (m_ambientLight.colorB / 255.0) * m_lMaterialAmbient; // Ia * Ka
-    Vec4 pointNormalized = point.normalize();
+    double A = m_lMaterialAmbient;
+    double D = m_lMaterialDiffuse;
+    double S = m_lMaterialSpecular;
+    double C = m_nMaterialCosineFactor;
+
+    double I[3] = { 0 };
+    double Ia = 0.5;
+    double Id = 0.5;
+    double Is = 0.5;
+
+    // Ambient light:
+    double objectColorR = GetRValue(objectColor) / 255.0;
+    double objectColorG = GetGValue(objectColor) / 255.0;
+    double objectColorB = GetBValue(objectColor) / 255.0;
+    double ambientColorR = m_ambientLight.colorR / 255.0;
+    double ambientColorG = m_ambientLight.colorG / 255.0;
+    double ambientColorB = m_ambientLight.colorB / 255.0;
+    I[0] = Ia * (A * ambientColorR);
+    I[1] = Ia * (A * ambientColorG);
+    I[2] = Ia * (A * ambientColorB);
+    
     for (LightParams light : m_lights) {
-        if (!light.enabled) {
-            continue;
-        }
-        Vec4 lightVec(0, 0, 0, 0);
-        if (light.type == LIGHT_TYPE_DIRECTIONAL) {
-            lightVec = Vec4(light.dirX, light.dirY, light.dirZ, 0);
-        } else if (light.type == LIGHT_TYPE_POINT) {
-            lightVec = Vec4(point.x - light.posX, point.y - light.posY, point.z - light.posZ, 0);
-        }
-        if (lightVec != Vec4(0, 0, 0, 0)) {
-            if (light.space == LIGHT_SPACE_LOCAL) {
-                lightVec = screen * lightVec;
+        if (light.enabled) {
+            // Diffuse light:
+            Vec4 N = (ne.end - ne.start).normalize();
+            Vec4 L;
+            if (light.type == LIGHT_TYPE_DIRECTIONAL) {
+                L = Vec4(light.dirX, light.dirY, light.dirZ, 1).normalize();
+            } else if (light.type == LIGHT_TYPE_POINT) {
+                L = Vec4(light.posX - ne.start.x, light.posY - ne.start.y, light.posZ - ne.start.z, 1).normalize();
+            } else {
+                continue;
             }
-            // Diffuse + Specular lighting:
-            Vec4 lightNormalized = lightVec.normalize();
-            double NL = -normal * lightNormalized; // <N, L> == cos(theta)
-            double pointDotLight = pointNormalized * lightNormalized;
-            double RV = cos(acos(pointDotLight) - 2 * acos(pointDotLight));
-            double RVn = pow(RV, m_nMaterialCosineFactor);
-            double kp = (m_lMaterialDiffuse * NL + m_lMaterialSpecular * RVn); // (Kd * <N, L> + Ks * <R, V>^n)
-            factorR += (light.colorR / 255.0) * m_lMaterialDiffuse * NL + m_lMaterialSpecular * RVn; // Ip * (Kd * <N, L> + Ks * <R, V>^n)
-            factorG += (light.colorG / 255.0) * m_lMaterialDiffuse * NL + m_lMaterialSpecular * RVn; // Ip * (Kd * <N, L> + Ks * <R, V>^n)
-            factorB += (light.colorB / 255.0) * m_lMaterialDiffuse * NL + m_lMaterialSpecular * RVn; // Ip * (Kd * <N, L> + Ks * <R, V>^n)
+            double NL = N * L;
+            // MAYBE: (1-D) * NL * lightColorR  + D * objectColorR
+            // MAYBE: (1-D) * NL * lightColorR
+            // MAYBE: D * NL * lightColorR
+            double lightColorR = light.colorR / 255.0;
+            double lightColorG = light.colorG / 255.0;
+            double lightColorB = light.colorB / 255.0;
+            I[0] += Id * (D * NL * lightColorR);
+            I[1] += Id * (D * NL * lightColorG);
+            I[2] += Id * (D * NL * lightColorB);
+            /////////////////
+
+            // Specular light:
+            // MAYBE: Calculate V = (0,0,1) - ne.start
+            Vec4 R = ((N * 2) * NL - L).normalize();
+            Vec4 V = Vec4(0, 0, 1, 1);
+            double RV = R * V;
+            double RVn = pow(RV, C);
+            I[0] += Is * (S * RVn * lightColorR);
+            I[1] += Is * (S * RVn * lightColorG);
+            I[2] += Is * (S * RVn * lightColorB);
+            /////////////////
         }
     }
-    factorR = max(0, min(factorR, 1));
-    factorG = max(0, min(factorG, 1));
-    factorB = max(0, min(factorB, 1));
-    int colorR = GetRValue(color);
-    int colorG = GetGValue(color);
-    int colorB = GetBValue(color);
+    I[0] = min(objectColorR* I[0], 1);
+    I[1] = min(objectColorG* I[1], 1);
+    I[2] = min(objectColorB* I[2], 1);
     return RGB(
-        colorR * factorR,
-        colorG * factorG,
-        colorB * factorB);
+        (int)(255 * I[0]),
+        (int)(255 * I[1]),
+        (int)(255 * I[2]));
 }
 
 COLORREF CCGWorkView::getBgValue(int x, int y, int width, int height)
