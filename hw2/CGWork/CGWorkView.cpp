@@ -811,23 +811,28 @@ COLORREF CCGWorkView::getColorAfterShading(Edge& ne, COLORREF objectColor, Mat4&
     for (LightParams light : m_lights) {
         if (light.enabled) {
             // Diffuse light:
-            Vec4 N = (ne.end - ne.start).normalize();
+            Vec4 N = (ne.end - ne.start);
+            if (N.x == 0 && N.y == 0 && N.z == 0) {
+                continue;
+            }
+            N = N.normalize();
             Vec4 L;
             if (light.type == LIGHT_TYPE_DIRECTIONAL) {
                 // Minus dirY because Y+ is in the down direction on the screen, and we are in image space at this stage.
                 // Same deal for dirZ.
                 // Same deal for dirX.
-                L = Vec4(-light.dirX, -light.dirY, -light.dirZ, 1).normalize();
+                L = Vec4(-light.dirX, -light.dirY, -light.dirZ, 1);
             } else if (light.type == LIGHT_TYPE_POINT) {
                 // Minus posY because Y+ is in the down direction on the screen, and we are in image space at this stage.
                 // Same deal for posZ.
-                L = Vec4(light.posX - ne.start.x, -light.posY - ne.start.y, -light.posZ - ne.start.z, 1).normalize();
+                L = Vec4(light.posX - ne.start.x, -light.posY - ne.start.y, -light.posZ - ne.start.z, 1);
             } else {
                 continue;
             }
             if (L.x == 0 && L.y == 0 && L.z == 0) {
                 continue;
             }
+            L = L.normalize();
             double NL = N * L;
             if (NL < 0) {
                 continue;
@@ -845,7 +850,11 @@ COLORREF CCGWorkView::getColorAfterShading(Edge& ne, COLORREF objectColor, Mat4&
 
             // Specular light:
             // MAYBE: Calculate V = (0,0,1) - ne.start
-            Vec4 R = ((N * 2) * NL - L).normalize();
+            Vec4 R = ((N * 2) * NL - L);
+            if (R.x == 0 && R.y == 0 && R.z == 0) {
+                continue;
+            }
+            R = R.normalize();
             Vec4 V = Vec4(0, 0, 1, 1);
             double RV = R * V;
             double RVn = pow(RV, C);
