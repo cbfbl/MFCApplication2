@@ -441,7 +441,6 @@ void CCGWorkView::RenderScene(int width, int height)
         COLORREF normalColor = useCustomNormalsColor ? normalsColor : RGB(o.red, o.green, o.blue);
         for (GraphicPolygon p : o.polygons) {
             // Draw the normals of the polygon:
-            Vec4 normal, v0, v1, start, end, direction;
             Edge ne;
             switch (drawNormals) {
             case ID_NORMAL_POLYGONS_CALCULATED:
@@ -455,14 +454,14 @@ void CCGWorkView::RenderScene(int width, int height)
             case ID_NORMAL_VERTICES_CALCULATED:
                 for (Edge e : p.edges) {
                     ne = getNormalToVertex(e, t, true);
-                    drawLine(start, end, normalColor);
+                    drawLine(ne.start, ne.end, normalColor);
                 }
                 break;
             case ID_NORMAL_VERTICES_GIVEN:
                 for (Edge e : p.edges) {
                     if (!(e.start.normalX == 0 && e.start.normalY == 0 && e.start.normalZ == 0)) {
                         ne = getNormalToVertex(e, t, false);
-                        drawLine(start, end, normalColor);
+                        drawLine(ne.start, ne.end, normalColor);
                     }
                 }
                 break;
@@ -790,7 +789,8 @@ COLORREF CCGWorkView::getColorAfterShading(Edge& ne, COLORREF objectColor, Mat4&
             if (light.type == LIGHT_TYPE_DIRECTIONAL) {
                 // Minus dirY because Y+ is in the down direction on the screen, and we are in image space at this stage.
                 // Same deal for dirZ.
-                L = Vec4(light.dirX, -light.dirY, -light.dirZ, 1).normalize();
+                // Same deal for dirX.
+                L = Vec4(-light.dirX, -light.dirY, -light.dirZ, 1).normalize();
             } else if (light.type == LIGHT_TYPE_POINT) {
                 // Minus posY because Y+ is in the down direction on the screen, and we are in image space at this stage.
                 // Same deal for posZ.
