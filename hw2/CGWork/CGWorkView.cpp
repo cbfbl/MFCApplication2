@@ -453,14 +453,14 @@ void CCGWorkView::RenderScene(int width, int height)
                 break;
             case ID_NORMAL_VERTICES_CALCULATED:
                 for (Edge e : p.edges) {
-                    ne = getNormalToVertex(e, t, true);
+                    ne = getNormalToVertex(e.start, t, true);
                     drawLine(ne.start, ne.end, normalColor);
                 }
                 break;
             case ID_NORMAL_VERTICES_GIVEN:
                 for (Edge e : p.edges) {
                     if (!(e.start.normalX == 0 && e.start.normalY == 0 && e.start.normalZ == 0)) {
-                        ne = getNormalToVertex(e, t, false);
+                        ne = getNormalToVertex(e.start, t, false);
                         drawLine(ne.start, ne.end, normalColor);
                     }
                 }
@@ -507,16 +507,16 @@ void CCGWorkView::RenderScene(int width, int height)
                             // Edge is silhouette, draw it:
                             Vec4 start = t * e.start;
                             start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
-							Vec4 start2 = Vec4(start.x / start.w, start.y+1 / start.w, start.z / start.w, 1);
-							Vec4 start3 = Vec4(start.x / start.w, start.y-1 / start.w, start.z / start.w, 1);
-							Vec4 start4 = Vec4(start.x / start.w, start.y+2 / start.w, start.z / start.w, 1);
-							Vec4 start5 = Vec4(start.x / start.w, start.y-2 / start.w, start.z / start.w, 1);
+                            Vec4 start2 = Vec4(start.x / start.w, start.y + 1 / start.w, start.z / start.w, 1);
+                            Vec4 start3 = Vec4(start.x / start.w, start.y - 1 / start.w, start.z / start.w, 1);
+                            Vec4 start4 = Vec4(start.x / start.w, start.y + 2 / start.w, start.z / start.w, 1);
+                            Vec4 start5 = Vec4(start.x / start.w, start.y - 2 / start.w, start.z / start.w, 1);
                             Vec4 end = t * e.end;
                             end = Vec4(end.x / end.w, end.y / end.w, end.z / end.w, 1);
-							Vec4 end2 = Vec4(end.x / end.w, end.y+1 / end.w, end.z / end.w, 1);
-							Vec4 end3 = Vec4(end.x / end.w, end.y-1 / end.w, end.z / end.w, 1);
-							Vec4 end4 = Vec4(end.x / end.w, end.y+2 / end.w, end.z / end.w, 1);
-							Vec4 end5 = Vec4(end.x / end.w, end.y-2 / end.w, end.z / end.w, 1);
+                            Vec4 end2 = Vec4(end.x / end.w, end.y + 1 / end.w, end.z / end.w, 1);
+                            Vec4 end3 = Vec4(end.x / end.w, end.y - 1 / end.w, end.z / end.w, 1);
+                            Vec4 end4 = Vec4(end.x / end.w, end.y + 2 / end.w, end.z / end.w, 1);
+                            Vec4 end5 = Vec4(end.x / end.w, end.y - 2 / end.w, end.z / end.w, 1);
                             drawLine(start, end, silhouetteColor);
                             drawLine(start2, end2, silhouetteColor);
                             drawLine(start3, end3, silhouetteColor);
@@ -539,7 +539,6 @@ void CCGWorkView::RenderScene(int width, int height)
         }
         for (GraphicPolygon p : o.polygons) {
             // Draw the edges of the polygon:
-            vector<Edge> projectedEdges;
             if (bonusBackfaceCulling) {
                 Vec4 normal = t * p.normal;
                 if (normal.z < 0) {
@@ -563,10 +562,10 @@ void CCGWorkView::RenderScene(int width, int height)
             }
         }
         for (GraphicPolygon p : o.polygons) {
-            COLORREF flatShadeingColor;
+            COLORREF flatShadingColor;
             if (m_nLightShading == ID_LIGHT_SHADING_FLAT) {
                 Edge ne = getNormalToPolygon(p, t, useCalculateNormals);
-                flatShadeingColor = getColorAfterShading(ne, objectColor, t);
+                flatShadingColor = getColorAfterShading(ne, objectColor, t);
             }
 
             vector<Edge> projectedEdges;
@@ -579,6 +578,19 @@ void CCGWorkView::RenderScene(int width, int height)
                 end = Vec4(end.x / end.w, end.y / end.w, end.z / end.w, 1);
                 y_min = (min(start.y, end.y)) < y_min ? (min(start.y, end.y)) : y_min;
                 y_max = (max(start.y, end.y)) > y_max ? (max(start.y, end.y)) : y_max;
+
+                if (m_nLightShading == ID_LIGHT_SHADING_GOURAUD) {
+                    Edge neStart = getNormalToVertex(start, t, useCalculateNormals);
+                    COLORREF cStart = getColorAfterShading(neStart, objectColor, t);
+                    start.r = GetRValue(cStart);
+                    start.g = GetGValue(cStart);
+                    start.b = GetBValue(cStart);
+                    Edge neEnd = getNormalToVertex(end, t, useCalculateNormals);
+                    COLORREF cEnd = getColorAfterShading(neEnd, objectColor, t);
+                    end.r = GetRValue(cEnd);
+                    end.g = GetGValue(cEnd);
+                    end.b = GetBValue(cEnd);
+                }
                 projectedEdges.push_back(Edge(start, end));
             }
             for (size_t y = y_min; y < y_max; y++) {
@@ -610,6 +622,8 @@ void CCGWorkView::RenderScene(int width, int height)
                     } else {
                         scan_edge = Edge(Vec4(l_x + 1, y, l_z, 1), Vec4(r_x - 1, y, r_z, 1));
                     }
+
+
                     for (double current_x = scan_edge.start.x; current_x < scan_edge.end.x; current_x++) {
                         double current_z = scan_edge.getZ(current_x, y);
                         if (cullBackfaces) {
@@ -617,7 +631,10 @@ void CCGWorkView::RenderScene(int width, int height)
                                 zbuffer[current_x][y] = current_z;
                                 if (renderScreen) {
                                     if (m_nLightShading == ID_LIGHT_SHADING_FLAT) {
-                                        cbuffer[current_x][y] = flatShadeingColor;
+                                        cbuffer[current_x][y] = flatShadingColor;
+                                    } else if (m_nLightShading == ID_LIGHT_SHADING_GOURAUD) {
+                                        //colorConvexBlend(gouraudShadingColors, current_x, y);
+                                        //cbuffer[current_x][y] = flatShadingColor;
                                     }
                                 } else {
                                     cbuffer[current_x][y] = backgroundColor;
@@ -694,29 +711,29 @@ void CCGWorkView::drawLine(Vec4& start, Vec4& end, COLORREF color)
     }
 }
 
-Edge CCGWorkView::getNormalToVertex(Edge& e, Mat4& t, bool calculated)
+Edge CCGWorkView::getNormalToVertex(Vec4& v, Mat4& t, bool calculated)
 {
-    Vec4 normal, v0, v1, start, end, direction;
+    Vec4 normal, start, end;
     if (calculated) {
         vector<int> hashVertex;
-        hashVertex.push_back((int)(e.start.x * HASH_PRECISION));
-        hashVertex.push_back((int)(e.start.y * HASH_PRECISION));
-        hashVertex.push_back((int)(e.start.z * HASH_PRECISION));
+        hashVertex.push_back((int)(v.x * HASH_PRECISION));
+        hashVertex.push_back((int)(v.y * HASH_PRECISION));
+        hashVertex.push_back((int)(v.z * HASH_PRECISION));
         normal = vertexNormals[hashVertex];
         if (invertNormals) {
             normal = -normal;
         }
-        start = t * e.start;
+        start = t * v;
         end = start - (t * normal);
         start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
         end = Vec4(end.x / end.w, end.y / end.w, end.z / end.w, 1);
         return Edge(start, end);
     } else {
-        normal = Vec4(e.start.normalX, e.start.normalY, e.start.normalZ, 0);
+        normal = Vec4(v.normalX, v.normalY, v.normalZ, 0);
         if (invertNormals) {
             normal = -normal;
         }
-        start = t * e.start;
+        start = t * v;
         end = start + (t * normal);
         start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
         end = Vec4(end.x / end.w, end.y / end.w, end.z / end.w, 1);
@@ -773,7 +790,7 @@ COLORREF CCGWorkView::getColorAfterShading(Edge& ne, COLORREF objectColor, Mat4&
     I[0] = Ia * (A * ambientColorR);
     I[1] = Ia * (A * ambientColorG);
     I[2] = Ia * (A * ambientColorB);
-    
+
     int lightsCount = 0;
     for (LightParams light : m_lights) {
         if (light.enabled) {

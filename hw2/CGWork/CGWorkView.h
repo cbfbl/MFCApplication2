@@ -94,7 +94,7 @@ private:
     void Transform(int i, double dx, double dy);
     void drawLine(Vec4& start, Vec4& end, COLORREF color);
     Edge getNormalToPolygon(GraphicPolygon& p, Mat4& t, bool calculated);
-    Edge getNormalToVertex(Edge& e, Mat4& t, bool calculated);
+    Edge getNormalToVertex(Vec4& v, Mat4& t, bool calculated);
     COLORREF getColorAfterShading(Edge& ne, COLORREF objectColor, Mat4& t);
     COLORREF getBgValue(int x, int y, int width, int height);
 

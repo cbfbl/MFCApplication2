@@ -37,10 +37,27 @@ int Edge::ymax() const
 
 double Edge::getZ(double x, double y)
 {
-	if (end.y == start.y)
-	{
-		return min(end.z, start.z);
-	}
-	double z = ((y - start.y) / (end.y - start.y))*(end.z - start.z) + start.z;
+    double z;
+	if (end.y == start.y) {
+		z = min(end.z, start.z);
+	} else {
+        z = ((y - start.y) / (end.y - start.y)) * (end.z - start.z) + start.z;
+    }
 	return z;
+}
+
+COLORREF Edge::getColor(double x, double y)
+{
+    int r, g, b;
+    if (end.y == start.y) {
+        r = min(end.r, start.r);
+        g = min(end.g, start.g);
+        b = min(end.b, start.b);
+    } else {
+        double cy = ((y - start.y) / (end.y - start.y));
+        r = cy * (end.r - start.r) + start.r;
+        g = cy * (end.g - start.g) + start.g;
+        b = cy * (end.b - start.b) + start.b;
+    }
+    return RGB(r, g, b);
 }

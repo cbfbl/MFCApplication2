@@ -16,6 +16,7 @@ public:
     int ymin() const;
     int ymax() const;
 	double getZ(double x, double y);
+	COLORREF getColor(double x, double y);
 
 private:
 };
