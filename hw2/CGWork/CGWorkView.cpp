@@ -646,8 +646,8 @@ void CCGWorkView::RenderScene(int width, int height)
 
                     for (double current_x = scan_edge.start.x; current_x <= scan_edge.end.x; current_x++) {
                         double current_z = scan_edge.getZ(current_x, y);
-                        if (cullBackfaces) {
-                            if ((current_x < zbuffer.size() && current_x >= 0 && y >= 0 && y < zbuffer[0].size()) && current_z < zbuffer[current_x][y]) {
+                        if ((current_x < zbuffer.size() && current_x >= 0 && y >= 0 && y < zbuffer[0].size()) && current_z < zbuffer[current_x][y]) {
+                            if (cullBackfaces) {
                                 zbuffer[current_x][y] = current_z;
                                 if (renderScreen) {
                                     if (m_nLightShading == ID_LIGHT_SHADING_FLAT) {
@@ -658,10 +658,8 @@ void CCGWorkView::RenderScene(int width, int height)
                                     } else if (m_nLightShading == ID_SHADING_PHONG) {
                                         Vec4 p_n_dir = scan_edge.getPhongNormal(current_x, y);
                                         Vec4 p_ne_start(current_x, y, current_z, 1);
-                                        //start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
                                         Vec4 p_ne_end = p_ne_start + p_n_dir;
                                         p_ne_end.w = 1;
-                                        //end = Vec4(end.x / end.w, end.y / end.w, end.z / end.w, 1);
                                         Edge p_ne(p_ne_start, p_ne_end);
                                         COLORREF phongShadingColor = getColorAfterShading(p_ne, objectColor, t);
                                         cbuffer[current_x][y] = phongShadingColor;
@@ -669,23 +667,21 @@ void CCGWorkView::RenderScene(int width, int height)
                                 } else {
                                     cbuffer[current_x][y] = backgroundColor;
                                 }
-                            }
-                        } else if (renderScreen) {
-                            if (m_nLightShading == ID_LIGHT_SHADING_FLAT) {
-                                cbuffer[current_x][y] = flatShadingColor;
-                            } else if (m_nLightShading == ID_LIGHT_SHADING_GOURAUD) {
-                                COLORREF gouraudShadingColor = scan_edge.getColor(current_x, y);
-                                cbuffer[current_x][y] = gouraudShadingColor;
-                            } else if (m_nLightShading == ID_SHADING_PHONG) {
-                                Vec4 p_n_dir = scan_edge.getPhongNormal(current_x, y);
-                                Vec4 p_ne_start(current_x, y, current_z, 1);
-                                //start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
-                                Vec4 p_ne_end = p_ne_start + p_n_dir;
-                                p_ne_end.w = 1;
-                                //end = Vec4(end.x / end.w, end.y / end.w, end.z / end.w, 1);
-                                Edge p_ne(p_ne_start, p_ne_end);
-                                COLORREF phongShadingColor = getColorAfterShading(p_ne, objectColor, t);
-                                cbuffer[current_x][y] = phongShadingColor;
+                            } else if (renderScreen) {
+                                if (m_nLightShading == ID_LIGHT_SHADING_FLAT) {
+                                    cbuffer[current_x][y] = flatShadingColor;
+                                } else if (m_nLightShading == ID_LIGHT_SHADING_GOURAUD) {
+                                    COLORREF gouraudShadingColor = scan_edge.getColor(current_x, y);
+                                    cbuffer[current_x][y] = gouraudShadingColor;
+                                } else if (m_nLightShading == ID_SHADING_PHONG) {
+                                    Vec4 p_n_dir = scan_edge.getPhongNormal(current_x, y);
+                                    Vec4 p_ne_start(current_x, y, current_z, 1);
+                                    Vec4 p_ne_end = p_ne_start + p_n_dir;
+                                    p_ne_end.w = 1;
+                                    Edge p_ne(p_ne_start, p_ne_end);
+                                    COLORREF phongShadingColor = getColorAfterShading(p_ne, objectColor, t);
+                                    cbuffer[current_x][y] = phongShadingColor;
+                                }
                             }
                         }
                     }
