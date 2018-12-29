@@ -516,6 +516,16 @@ void CCGWorkView::RenderScene(int width, int height)
                 }
             }
         }
+        // Draw the bounding box of the object:
+        if (drawBoundingBox) {
+            for (Edge e : o.boundingBox) {
+                Vec4 start = t * e.start;
+                start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
+                Vec4 end = t * e.end;
+                end = Vec4(end.x / end.w, end.y / end.w, end.z / end.w, 1);
+                drawLine(start, end, objectColor);
+            }
+        }
         for (GraphicPolygon p : o.polygons) {
             // Draw the edges of the polygon:
             vector<Edge> projectedEdges;
@@ -531,15 +541,11 @@ void CCGWorkView::RenderScene(int width, int height)
                 Vec4 end = t * e.end;
                 end = Vec4(end.x / end.w, end.y / end.w, end.z / end.w, 1);
                 if (renderScreen) {
-                    //Edge ne = getNormalToPolygon(p, t, useCalculateNormals);
-                    //Vec4 normal = (ne.end - ne.start).normalize();
-                    //COLORREF sstart = getColorAfterShading(start, normal, objectColor, t);
-                    //COLORREF send = getColorAfterShading(end, normal, objectColor, t);
-                    //COLORREF shadedColor = RGB(
-                    //    (GetRValue(sstart) + GetRValue(send)) / 2,
-                    //    (GetGValue(sstart) + GetGValue(send)) / 2,
-                    //    (GetBValue(sstart) + GetBValue(send)) / 2);
-                    //drawLine(start, end, shadedColor);
+                    if (m_nLightShading == ID_LIGHT_SHADING_FLAT) {
+                        Edge ne = getNormalToPolygon(p, t, useCalculateNormals);
+                        COLORREF flatShadeingColor = getColorAfterShading(ne, objectColor, t);
+                        drawLine(start, end, flatShadeingColor);
+                    }
                 } else {
                     drawLine(start, end, objectColor);
                 }
@@ -616,17 +622,6 @@ void CCGWorkView::RenderScene(int width, int height)
                         }
                     }
                 }
-            }
-        }
-
-        // Draw the bounding box of the object:
-        if (drawBoundingBox) {
-            for (Edge e : o.boundingBox) {
-                Vec4 start = t * e.start;
-                Vec4 end = t * e.end;
-                start.z = DBL_MIN;
-                end.z = DBL_MIN;
-                drawLine(start, end, objectColor);
             }
         }
     }
@@ -753,9 +748,9 @@ COLORREF CCGWorkView::getColorAfterShading(Edge& ne, COLORREF objectColor, Mat4&
     double C = m_nMaterialCosineFactor;
 
     double I[3] = { 0 };
-    double Ia = 0.5;
-    double Id = 0.5;
-    double Is = 0.5;
+    double Ia = 0.7;
+    double Id = 0.4;
+    double Is = 0.4;
 
     // Ambient light:
     double objectColorR = GetRValue(objectColor) / 255.0;
@@ -768,28 +763,45 @@ COLORREF CCGWorkView::getColorAfterShading(Edge& ne, COLORREF objectColor, Mat4&
     I[1] = Ia * (A * ambientColorG);
     I[2] = Ia * (A * ambientColorB);
     
+    int lightsCount = 0;
+    for (LightParams light : m_lights) {
+        if (light.enabled) {
+            lightsCount++;
+        }
+    }
+
     for (LightParams light : m_lights) {
         if (light.enabled) {
             // Diffuse light:
             Vec4 N = (ne.end - ne.start).normalize();
             Vec4 L;
             if (light.type == LIGHT_TYPE_DIRECTIONAL) {
-                L = Vec4(light.dirX, light.dirY, light.dirZ, 1).normalize();
+                // Minus dirY because Y+ is in the down direction on the screen, and we are in image space at this stage.
+                // Same deal for dirZ.
+                L = Vec4(light.dirX, -light.dirY, -light.dirZ, 1).normalize();
             } else if (light.type == LIGHT_TYPE_POINT) {
-                L = Vec4(light.posX - ne.start.x, light.posY - ne.start.y, light.posZ - ne.start.z, 1).normalize();
+                // Minus posY because Y+ is in the down direction on the screen, and we are in image space at this stage.
+                // Same deal for posZ.
+                L = Vec4(light.posX - ne.start.x, -light.posY - ne.start.y, -light.posZ - ne.start.z, 1).normalize();
             } else {
                 continue;
             }
+            if (L.x == 0 && L.y == 0 && L.z == 0) {
+                continue;
+            }
             double NL = N * L;
+            if (NL < 0) {
+                continue;
+            }
             // MAYBE: (1-D) * NL * lightColorR  + D * objectColorR
             // MAYBE: (1-D) * NL * lightColorR
             // MAYBE: D * NL * lightColorR
             double lightColorR = light.colorR / 255.0;
             double lightColorG = light.colorG / 255.0;
             double lightColorB = light.colorB / 255.0;
-            I[0] += Id * (D * NL * lightColorR);
-            I[1] += Id * (D * NL * lightColorG);
-            I[2] += Id * (D * NL * lightColorB);
+            I[0] += Id * (D * NL * lightColorR) / lightsCount;
+            I[1] += Id * (D * NL * lightColorG) / lightsCount;
+            I[2] += Id * (D * NL * lightColorB) / lightsCount;
             /////////////////
 
             // Specular light:
@@ -798,15 +810,15 @@ COLORREF CCGWorkView::getColorAfterShading(Edge& ne, COLORREF objectColor, Mat4&
             Vec4 V = Vec4(0, 0, 1, 1);
             double RV = R * V;
             double RVn = pow(RV, C);
-            I[0] += Is * (S * RVn * lightColorR);
-            I[1] += Is * (S * RVn * lightColorG);
-            I[2] += Is * (S * RVn * lightColorB);
+            I[0] += Is * (S * RVn * lightColorR) / lightsCount;
+            I[1] += Is * (S * RVn * lightColorG) / lightsCount;
+            I[2] += Is * (S * RVn * lightColorB) / lightsCount;
             /////////////////
         }
     }
-    I[0] = min(objectColorR* I[0], 1);
-    I[1] = min(objectColorG* I[1], 1);
-    I[2] = min(objectColorB* I[2], 1);
+    I[0] = min(objectColorR * I[0], 1);
+    I[1] = min(objectColorG * I[1], 1);
+    I[2] = min(objectColorB * I[2], 1);
     return RGB(
         (int)(255 * I[0]),
         (int)(255 * I[1]),
