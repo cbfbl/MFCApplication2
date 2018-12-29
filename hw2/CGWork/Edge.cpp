@@ -39,7 +39,11 @@ double Edge::getZ(double x, double y)
 {
     double z;
 	if (end.y == start.y) {
-		z = min(end.z, start.z);
+        if (end.x == start.x) {
+		    z = min(end.z, start.z);
+        } else {
+            z = ((x - start.x) / (end.x - start.x)) * (end.z - start.z) + start.z;
+        }
 	} else {
         z = ((y - start.y) / (end.y - start.y)) * (end.z - start.z) + start.z;
     }
@@ -50,9 +54,16 @@ COLORREF Edge::getColor(double x, double y)
 {
     int r, g, b;
     if (end.y == start.y) {
-        r = min(end.r, start.r);
-        g = min(end.g, start.g);
-        b = min(end.b, start.b);
+        if (end.x == start.x) {
+            r = min(end.r, start.r);
+            g = min(end.g, start.g);
+            b = min(end.b, start.b);
+        } else {
+            double cx = ((x - start.x) / (end.x - start.x));
+            r = cx * (end.r - start.r) + start.r;
+            g = cx * (end.g - start.g) + start.g;
+            b = cx * (end.b - start.b) + start.b;
+        }
     } else {
         double cy = ((y - start.y) / (end.y - start.y));
         r = cy * (end.r - start.r) + start.r;

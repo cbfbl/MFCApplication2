@@ -622,7 +622,17 @@ void CCGWorkView::RenderScene(int width, int height)
                     } else {
                         scan_edge = Edge(Vec4(l_x + 1, y, l_z, 1), Vec4(r_x - 1, y, r_z, 1));
                     }
-
+                    
+                    if (m_nLightShading == ID_LIGHT_SHADING_GOURAUD) {
+                        COLORREF l_color = l_edge.getColor(l_x, y);
+                        scan_edge.start.r = GetRValue(l_color);
+                        scan_edge.start.g = GetGValue(l_color);
+                        scan_edge.start.b = GetBValue(l_color);
+                        COLORREF r_color = r_edge.getColor(r_x, y);
+                        scan_edge.end.r = GetRValue(r_color);
+                        scan_edge.end.g = GetGValue(r_color);
+                        scan_edge.end.b = GetBValue(r_color);
+                    }
 
                     for (double current_x = scan_edge.start.x; current_x < scan_edge.end.x; current_x++) {
                         double current_z = scan_edge.getZ(current_x, y);
@@ -633,8 +643,8 @@ void CCGWorkView::RenderScene(int width, int height)
                                     if (m_nLightShading == ID_LIGHT_SHADING_FLAT) {
                                         cbuffer[current_x][y] = flatShadingColor;
                                     } else if (m_nLightShading == ID_LIGHT_SHADING_GOURAUD) {
-                                        //colorConvexBlend(gouraudShadingColors, current_x, y);
-                                        //cbuffer[current_x][y] = flatShadingColor;
+                                        COLORREF gouraudShadingColor = scan_edge.getColor(current_x, y);
+                                        cbuffer[current_x][y] = gouraudShadingColor;
                                     }
                                 } else {
                                     cbuffer[current_x][y] = backgroundColor;
