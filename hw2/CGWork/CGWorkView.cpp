@@ -564,8 +564,8 @@ void CCGWorkView::RenderScene(int width, int height)
             }
 
             vector<Edge> projectedEdges;
-            int y_min = INT_MAX;
-            int y_max = INT_MIN;
+            size_t y_min;
+            size_t y_max;
             for (Edge e : p.edges) {
                 Vec4 start = t * e.start;
                 start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
@@ -671,12 +671,22 @@ void CCGWorkView::RenderScene(int width, int height)
                                 }
                             }
                         } else if (renderScreen) {
-                            // TODO: implement me!
-                            //if (m_nLightShading == ID_LIGHT_SHADING_FLAT) {
-                            //    Edge ne = getNormalToPolygon(p, t, useCalculateNormals);
-                            //    COLORREF shadedColor = getColorAfterShading(ne, objectColor, t);
-                            //    cbuffer[current_x][y] = shadedColor;
-                            //}
+                            if (m_nLightShading == ID_LIGHT_SHADING_FLAT) {
+                                cbuffer[current_x][y] = flatShadingColor;
+                            } else if (m_nLightShading == ID_LIGHT_SHADING_GOURAUD) {
+                                COLORREF gouraudShadingColor = scan_edge.getColor(current_x, y);
+                                cbuffer[current_x][y] = gouraudShadingColor;
+                            } else if (m_nLightShading == ID_SHADING_PHONG) {
+                                Vec4 p_n_dir = scan_edge.getPhongNormal(current_x, y);
+                                Vec4 p_ne_start(current_x, y, current_z, 1);
+                                //start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
+                                Vec4 p_ne_end = p_ne_start + p_n_dir;
+                                p_ne_end.w = 1;
+                                //end = Vec4(end.x / end.w, end.y / end.w, end.z / end.w, 1);
+                                Edge p_ne(p_ne_start, p_ne_end);
+                                COLORREF phongShadingColor = getColorAfterShading(p_ne, objectColor, t);
+                                cbuffer[current_x][y] = phongShadingColor;
+                            }
                         }
                     }
                 }
