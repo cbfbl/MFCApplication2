@@ -17,6 +17,7 @@ public:
     int ymax() const;
 	double getZ(double x, double y);
 	COLORREF getColor(double x, double y);
+	Vec4 getPhongNormal(double x, double y);
 
 private:
 };

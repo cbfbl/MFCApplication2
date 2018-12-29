@@ -1,4 +1,5 @@
 #pragma once
+
 #include "stdafx.h"
 
 class Vec4 {
@@ -19,6 +20,10 @@ public:
     int r;
     int g;
     int b;
+
+    double dirX;  // For Phong shading.
+    double dirY;  // For Phong shading.
+    double dirZ;  // For Phong shading.
 
     Vec4 operator+(const Vec4& rhs) const;
     Vec4 operator-(const Vec4& rhs) const;

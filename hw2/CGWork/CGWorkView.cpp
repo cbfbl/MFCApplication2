@@ -151,6 +151,7 @@ CCGWorkView::CCGWorkView()
 
     //init the first light to be enabled
     m_lights[LIGHT_ID_1].enabled = true;
+    m_lights[LIGHT_ID_1].type = LIGHT_TYPE_POINT;
     m_pDbBitMap = NULL;
     m_pDbDC = NULL;
 
@@ -182,7 +183,7 @@ CCGWorkView::CCGWorkView()
     cullBackfaces = false;
     bonusBackfaceCulling = false;
     bgStretch = true;
-    useCalculateNormals = false;
+    useCalculateNormals = true;
     //bgbuffer = vector<vector<COLORREF>>(0);
 }
 
@@ -537,26 +538,20 @@ void CCGWorkView::RenderScene(int width, int height)
                 drawLine(start, end, objectColor);
             }
         }
-        for (GraphicPolygon p : o.polygons) {
-            // Draw the edges of the polygon:
-            if (bonusBackfaceCulling) {
-                Vec4 normal = t * p.normal;
-                if (normal.z < 0) {
-                    continue;
-                }
-            }
-            for (Edge e : p.edges) {
-                Vec4 start = t * e.start;
-                start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
-                Vec4 end = t * e.end;
-                end = Vec4(end.x / end.w, end.y / end.w, end.z / end.w, 1);
-                if (renderScreen) {
-                    if (m_nLightShading == ID_LIGHT_SHADING_FLAT) {
-                        Edge ne = getNormalToPolygon(p, t, useCalculateNormals);
-                        COLORREF flatShadeingColor = getColorAfterShading(ne, objectColor, t);
-                        drawLine(start, end, flatShadeingColor);
+        // Draw the edges of the polygon in wireframe mode:
+        if (!renderScreen) {
+            for (GraphicPolygon p : o.polygons) {
+                if (bonusBackfaceCulling) {
+                    Vec4 normal = t * p.normal;
+                    if (normal.z < 0) {
+                        continue;
                     }
-                } else {
+                }
+                for (Edge e : p.edges) {
+                    Vec4 start = t * e.start;
+                    start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
+                    Vec4 end = t * e.end;
+                    end = Vec4(end.x / end.w, end.y / end.w, end.z / end.w, 1);
                     drawLine(start, end, objectColor);
                 }
             }
@@ -590,10 +585,21 @@ void CCGWorkView::RenderScene(int width, int height)
                     end.r = GetRValue(cEnd);
                     end.g = GetGValue(cEnd);
                     end.b = GetBValue(cEnd);
+                } else if (m_nLightShading == ID_SHADING_PHONG) {
+                    Edge ne_start = getNormalToVertex(e.start, t, useCalculateNormals);
+                    Vec4 start_dir = (ne_start.end - ne_start.start).normalize();
+                    start.dirX = start_dir.x;
+                    start.dirY = start_dir.y;
+                    start.dirZ = start_dir.z;
+                    Edge ne_end = getNormalToVertex(e.end, t, useCalculateNormals);
+                    Vec4 end_dir = (ne_end.end - ne_end.start).normalize();
+                    end.dirX = end_dir.x;
+                    end.dirY = end_dir.y;
+                    end.dirZ = end_dir.z;
                 }
                 projectedEdges.push_back(Edge(start, end));
             }
-            for (size_t y = y_min; y < y_max; y++) {
+            for (size_t y = y_min; y <= y_max; y++) {
                 vector<std::pair<double, Edge>> edge_intersections;
                 for (Edge e : projectedEdges) {
                     if ((e.start.y <= y && y < e.end.y) || (e.end.y <= y && y < e.start.y)) {
@@ -616,8 +622,8 @@ void CCGWorkView::RenderScene(int width, int height)
                     Edge r_edge = edge_intersections[k + 1].second;
                     double l_z = l_edge.getZ(l_x, y);
                     double r_z = r_edge.getZ(r_x, y);
-                    Edge scan_edge(Vec4(l_x, y, l_z, 1), Vec4(r_x, y, r_z, 1));;
-                    
+                    Edge scan_edge(Vec4(l_x, y, l_z, 1), Vec4(r_x, y, r_z, 1));
+
                     if (m_nLightShading == ID_LIGHT_SHADING_GOURAUD) {
                         COLORREF l_color = l_edge.getColor(l_x, y);
                         scan_edge.start.r = GetRValue(l_color);
@@ -627,9 +633,18 @@ void CCGWorkView::RenderScene(int width, int height)
                         scan_edge.end.r = GetRValue(r_color);
                         scan_edge.end.g = GetGValue(r_color);
                         scan_edge.end.b = GetBValue(r_color);
+                    } else if (m_nLightShading == ID_SHADING_PHONG) {
+                        Vec4 l_p_n_dir = l_edge.getPhongNormal(l_x, y);
+                        scan_edge.start.dirX = l_p_n_dir.x;
+                        scan_edge.start.dirY = l_p_n_dir.y;
+                        scan_edge.start.dirZ = l_p_n_dir.z;
+                        Vec4 r_p_n_dir = r_edge.getPhongNormal(r_x, y);
+                        scan_edge.end.dirX = r_p_n_dir.x;
+                        scan_edge.end.dirY = r_p_n_dir.y;
+                        scan_edge.end.dirZ = r_p_n_dir.z;
                     }
 
-                    for (double current_x = scan_edge.start.x; current_x < scan_edge.end.x; current_x++) {
+                    for (double current_x = scan_edge.start.x; current_x <= scan_edge.end.x; current_x++) {
                         double current_z = scan_edge.getZ(current_x, y);
                         if (cullBackfaces) {
                             if ((current_x < zbuffer.size() && current_x >= 0 && y >= 0 && y < zbuffer[0].size()) && current_z < zbuffer[current_x][y]) {
@@ -640,6 +655,16 @@ void CCGWorkView::RenderScene(int width, int height)
                                     } else if (m_nLightShading == ID_LIGHT_SHADING_GOURAUD) {
                                         COLORREF gouraudShadingColor = scan_edge.getColor(current_x, y);
                                         cbuffer[current_x][y] = gouraudShadingColor;
+                                    } else if (m_nLightShading == ID_SHADING_PHONG) {
+                                        Vec4 p_n_dir = scan_edge.getPhongNormal(current_x, y);
+                                        Vec4 p_ne_start(current_x, y, current_z, 1);
+                                        //start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
+                                        Vec4 p_ne_end = p_ne_start + p_n_dir;
+                                        p_ne_end.w = 1;
+                                        //end = Vec4(end.x / end.w, end.y / end.w, end.z / end.w, 1);
+                                        Edge p_ne(p_ne_start, p_ne_end);
+                                        COLORREF phongShadingColor = getColorAfterShading(p_ne, objectColor, t);
+                                        cbuffer[current_x][y] = phongShadingColor;
                                     }
                                 } else {
                                     cbuffer[current_x][y] = backgroundColor;
@@ -662,7 +687,6 @@ void CCGWorkView::RenderScene(int width, int height)
 
 void CCGWorkView::drawLine(Vec4& start, Vec4& end, COLORREF color)
 {
-    // DBL_MIN is used for z values of start and end when you want to draw the line no matter what.
     int x1 = start.x;
     int y1 = start.y;
     int x2 = end.x;
