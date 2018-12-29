@@ -580,12 +580,12 @@ void CCGWorkView::RenderScene(int width, int height)
                 y_max = (max(start.y, end.y)) > y_max ? (max(start.y, end.y)) : y_max;
 
                 if (m_nLightShading == ID_LIGHT_SHADING_GOURAUD) {
-                    Edge neStart = getNormalToVertex(start, t, useCalculateNormals);
+                    Edge neStart = getNormalToVertex(e.start, t, useCalculateNormals);
                     COLORREF cStart = getColorAfterShading(neStart, objectColor, t);
                     start.r = GetRValue(cStart);
                     start.g = GetGValue(cStart);
                     start.b = GetBValue(cStart);
-                    Edge neEnd = getNormalToVertex(end, t, useCalculateNormals);
+                    Edge neEnd = getNormalToVertex(e.end, t, useCalculateNormals);
                     COLORREF cEnd = getColorAfterShading(neEnd, objectColor, t);
                     end.r = GetRValue(cEnd);
                     end.g = GetGValue(cEnd);
@@ -616,12 +616,7 @@ void CCGWorkView::RenderScene(int width, int height)
                     Edge r_edge = edge_intersections[k + 1].second;
                     double l_z = l_edge.getZ(l_x, y);
                     double r_z = r_edge.getZ(r_x, y);
-                    Edge scan_edge;
-                    if (renderScreen) {
-                        scan_edge = Edge(Vec4(l_x, y, l_z, 1), Vec4(r_x, y, r_z, 1));
-                    } else {
-                        scan_edge = Edge(Vec4(l_x + 1, y, l_z, 1), Vec4(r_x - 1, y, r_z, 1));
-                    }
+                    Edge scan_edge(Vec4(l_x, y, l_z, 1), Vec4(r_x, y, r_z, 1));;
                     
                     if (m_nLightShading == ID_LIGHT_SHADING_GOURAUD) {
                         COLORREF l_color = l_edge.getColor(l_x, y);
