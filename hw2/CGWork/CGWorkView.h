@@ -86,6 +86,8 @@ private:
     bool bgStretch;
     bool useCalculateNormals;
     bool bonusBackfaceCulling;
+    bool enableFog;
+    COLORREF fogColor;
 	vector<vector<double>> zbuffer;
     vector<vector<COLORREF>> cbuffer;
     vector<vector<COLORREF>> bgbuffer;
@@ -220,6 +222,9 @@ public:
 	afx_msg void OnOptionsPerspectivecontrol32824();
 	afx_msg void OnUpdateUseCalculatedNormals(CCmdUI *pCmdUI);
 	afx_msg void OnUseCalculatedNormals();
+	afx_msg void OnFogEnable();
+    afx_msg void OnUpdateFogEnable(CCmdUI *pCmdUI);
+	afx_msg void OnFogColor();
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp

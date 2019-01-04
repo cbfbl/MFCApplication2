@@ -144,6 +144,11 @@ BEGIN
         MENUITEM "Backface Culling",            ID_RENDER_BACKFACECULLING
         MENUITEM "Bonus Backface Culling",      ID_RENDER_BONUSBACKFACECULLING
     END
+    POPUP "&Fog"
+    BEGIN
+        MENUITEM "&Enable",                     ID_FOG_ENABLE
+        MENUITEM "&Color...",                   ID_FOG_COLOR
+    END
     POPUP "Background"
     BEGIN
         MENUITEM "Load...",                     ID_BG_LOAD

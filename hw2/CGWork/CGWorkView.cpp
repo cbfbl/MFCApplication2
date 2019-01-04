@@ -115,6 +115,9 @@ ON_COMMAND(ID_BG_STRETCH, OnBgStretch)
 ON_UPDATE_COMMAND_UI(ID_BG_STRETCH, OnUpdateBgStretch)
 ON_COMMAND(ID_BG_REPEAT, OnBgRepeat)
 ON_UPDATE_COMMAND_UI(ID_BG_REPEAT, OnUpdateBgRepeat)
+ON_COMMAND(ID_FOG_COLOR, OnFogColor)
+ON_COMMAND(ID_FOG_ENABLE, OnFogEnable)
+ON_UPDATE_COMMAND_UI(ID_FOG_ENABLE, OnUpdateFogEnable)
 //}}AFX_MSG_MAP
 ON_WM_TIMER()
 ON_WM_KEYUP()
@@ -184,6 +187,8 @@ CCGWorkView::CCGWorkView()
     bonusBackfaceCulling = false;
     bgStretch = true;
     useCalculateNormals = true;
+    enableFog = false;
+    fogColor = RGB(220, 220, 220);
     //bgbuffer = vector<vector<COLORREF>>(0);
 }
 
@@ -564,8 +569,8 @@ void CCGWorkView::RenderScene(int width, int height)
             }
 
             vector<Edge> projectedEdges;
-            size_t y_min;
-            size_t y_max;
+            size_t y_min = UINT_MAX;
+            size_t y_max = 0;
             for (Edge e : p.edges) {
                 Vec4 start = t * e.start;
                 start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
@@ -889,9 +894,22 @@ COLORREF CCGWorkView::getColorAfterShading(Edge& ne, COLORREF objectColor, Mat4&
             /////////////////
         }
     }
-    I[0] = min(objectColorR * I[0], 1);
-    I[1] = min(objectColorG * I[1], 1);
-    I[2] = min(objectColorB * I[2], 1);
+
+    double fogFactor = 0;
+    double fogColorR = GetRValue(fogColor) / 255.0;
+    double fogColorG = GetGValue(fogColor) / 255.0;
+    double fogColorB = GetBValue(fogColor) / 255.0;
+    if (enableFog) {
+        double fogStart = 2;  // Z (depth) values, closest to the viewer.
+        double fogEnd = 1;    // Z (depth) values, farthest away from the viewer.
+        fogFactor = (fogEnd - ne.start.z) / (fogEnd - fogStart);
+        fogFactor = max(0, min(1, fogFactor));
+    }
+
+    I[0] = min(1, (1 - fogFactor) * objectColorR * I[0] + fogFactor * fogColorR);
+    I[1] = min(1, (1 - fogFactor) * objectColorG * I[1] + fogFactor * fogColorG);
+    I[2] = min(1, (1 - fogFactor) * objectColorB * I[2] + fogFactor * fogColorB);
+
     return RGB(
         (int)(255 * I[0]),
         (int)(255 * I[1]),
@@ -1596,5 +1614,26 @@ void CCGWorkView::OnUpdateUseCalculatedNormals(CCmdUI* pCmdUI)
 void CCGWorkView::OnUseCalculatedNormals()
 {
     useCalculateNormals = !useCalculateNormals;
+    Invalidate();
+}
+
+void CCGWorkView::OnFogColor()
+{
+    CColorDialog colorDialog;
+    colorDialog.m_cc.Flags |= CC_RGBINIT;
+    colorDialog.m_cc.rgbResult = fogColor;
+    if (colorDialog.DoModal() == IDOK) {
+        fogColor = colorDialog.GetColor();
+        Invalidate();
+    }
+}
+
+void CCGWorkView::OnUpdateFogEnable(CCmdUI* pCmdUI)
+{
+    pCmdUI->SetCheck(enableFog);
+}
+void CCGWorkView::OnFogEnable()
+{
+    enableFog = !enableFog;
     Invalidate();
 }
