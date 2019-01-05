@@ -21,6 +21,7 @@
 #include <algorithm>
 using std::vector;
 #include "PngWrapper.h"
+#include "GraphicModel.h"
 
 
 class CCGWorkView : public CView
@@ -59,25 +60,15 @@ private:
     int drawNormals;
     CPoint lastCursorLocation;
     Mat4 screen;
-    vector<double> thetaX;
-    vector<double> thetaY;
-    vector<double> thetaZ;
-    vector<double> scaleX;
-    vector<double> scaleY;
-    vector<double> scaleZ;
-    vector<double> translateX;
-    vector<double> translateY;
-    vector<double> translateZ;
+    vector<GraphicModel> models;
     double projection_d;
-    COLORREF wireframeColor;
-    bool useCustomWireframeColor;
     COLORREF normalsColor;
     bool useCustomNormalsColor;
     COLORREF backgroundColor;
     COLORREF silhouetteColor;
     int mouseSensitivity;
 	bool object;
-    int objIdx;
+    int modelIdx;
 	double d;
 	double a;
     bool invertNormals;
@@ -93,7 +84,7 @@ private:
     vector<vector<COLORREF>> bgbuffer;
 
     void Transform(CPoint diff);
-    void Transform(int i, double dx, double dy);
+    void Transform(GraphicModel& model, double dx, double dy);
     void drawLine(Vec4& start, Vec4& end, COLORREF color);
     Edge getNormalToPolygon(GraphicPolygon& p, Mat4& t, bool calculated);
     Edge getNormalToVertex(Vec4& v, Mat4& t, bool calculated);

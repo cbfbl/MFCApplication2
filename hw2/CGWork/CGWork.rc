@@ -104,7 +104,7 @@ BEGIN
         MENUITEM "View",                        ID_ACTION_VIEW
         MENUITEM "Object",                      ID_ACTION_OBJECT
         MENUITEM SEPARATOR
-        MENUITEM "Selected object...",          ID_ACTION_SELECTEDOBJECT
+        MENUITEM "Sele&cted Model...",          ID_ACTION_SELECTEDOBJECT
     END
     POPUP "A&xis"
     BEGIN
@@ -290,7 +290,7 @@ END
 
 IDD_ObjectSelectionDialog DIALOGEX 0, 0, 320, 200
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "Object Selection Dialog"
+CAPTION "Model Selection Dialog"
 FONT 8, "MS Shell Dlg", 0, 0, 0x0
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,209,179,50,14

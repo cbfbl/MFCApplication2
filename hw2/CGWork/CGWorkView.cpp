@@ -162,18 +162,7 @@ CCGWorkView::CCGWorkView()
     drawBoundingBox = false;
     drawSilhouette = false;
     lastCursorLocation = CPoint();
-    objIdx = 0;
-    thetaX.push_back(0);
-    thetaY.push_back(0);
-    thetaZ.push_back(0);
-    scaleX.push_back(0.14);
-    scaleY.push_back(0.14);
-    scaleZ.push_back(0.14);
-    translateX.push_back(0);
-    translateY.push_back(0);
-    translateZ.push_back(0);
-    wireframeColor = RGB(0, 0, 0);
-    useCustomWireframeColor = false;
+    modelIdx = 0;
     normalsColor = RGB(0, 0, 0);
     useCustomNormalsColor = false;
     backgroundColor = RGB(255, 255, 255);
@@ -385,31 +374,32 @@ void CCGWorkView::RenderScene(int width, int height)
         }
     }
 
-    for (size_t i = 0; i < graphicObjects.size(); i++) {
+    for (size_t i = 0; i < models.size(); i++) {
+        GraphicModel model = models[i];
         Mat4 rotateX = Mat4(
             Vec4(1, 0, 0, 0),
-            Vec4(0, cos(thetaX[i]), -sin(thetaX[i]), 0),
-            Vec4(0, sin(thetaX[i]), cos(thetaX[i]), 0),
+            Vec4(0, cos(model.thetaX), -sin(model.thetaX), 0),
+            Vec4(0, sin(model.thetaX), cos(model.thetaX), 0),
             Vec4(0, 0, 0, 1));
         Mat4 rotateY = Mat4(
-            Vec4(cos(thetaY[i]), 0, sin(thetaY[i]), 0),
+            Vec4(cos(model.thetaY), 0, sin(model.thetaY), 0),
             Vec4(0, 1, 0, 0),
-            Vec4(-sin(thetaY[i]), 0, cos(thetaY[i]), 0),
+            Vec4(-sin(model.thetaY), 0, cos(model.thetaY), 0),
             Vec4(0, 0, 0, 1));
         Mat4 rotateZ = Mat4(
-            Vec4(cos(thetaZ[i]), -sin(thetaZ[i]), 0, 0),
-            Vec4(sin(thetaZ[i]), cos(thetaZ[i]), 0, 0),
+            Vec4(cos(model.thetaZ), -sin(model.thetaZ), 0, 0),
+            Vec4(sin(model.thetaZ), cos(model.thetaZ), 0, 0),
             Vec4(0, 0, 1, 0),
             Vec4(0, 0, 0, 1));
         Mat4 scale = Mat4(
-            Vec4(scaleX[i], 0, 0, 0),
-            Vec4(0, scaleY[i], 0, 0),
-            Vec4(0, 0, scaleZ[i], 0),
+            Vec4(model.scaleX, 0, 0, 0),
+            Vec4(0, model.scaleY, 0, 0),
+            Vec4(0, 0, model.scaleZ, 0),
             Vec4(0, 0, 0, 1));
         Mat4 translate = Mat4(
-            Vec4(1, 0, 0, translateX[i]),
-            Vec4(0, 1, 0, translateY[i]),
-            Vec4(0, 0, 1, translateZ[i]),
+            Vec4(1, 0, 0, model.translateX),
+            Vec4(0, 1, 0, model.translateY),
+            Vec4(0, 0, 1, model.translateZ),
             Vec4(0, 0, 0, 1));
         Mat4 perspective = Mat4(
             Vec4(1, 0, 0, 0),
@@ -441,118 +431,100 @@ void CCGWorkView::RenderScene(int width, int height)
             t = screen * perspective * translateZinit * translate * rotateX * rotateY * rotateZ * scale;
             tp = screen * translateZinit * translate * rotateX * rotateY * rotateZ * scale;
         }
-        GraphicObject o = graphicObjects[i];
-
-        COLORREF objectColor = useCustomWireframeColor ? wireframeColor : RGB(o.red, o.green, o.blue);
-        COLORREF normalColor = useCustomNormalsColor ? normalsColor : RGB(o.red, o.green, o.blue);
-        for (GraphicPolygon p : o.polygons) {
-            // Draw the normals of the polygon:
-            Edge ne;
-            switch (drawNormals) {
-            case ID_NORMAL_POLYGONS_CALCULATED:
-                ne = getNormalToPolygon(p, t, true);
-                drawLine(ne.start, ne.end, normalColor);
-                break;
-            case ID_NORMAL_POLYGONS_GIVEN:
-                ne = getNormalToPolygon(p, t, false);
-                drawLine(ne.start, ne.end, normalColor);
-                break;
-            case ID_NORMAL_VERTICES_CALCULATED:
-                for (Edge e : p.edges) {
-                    ne = getNormalToVertex(e.start, t, true);
+        for (GraphicObject o : model.objects) {
+            COLORREF objectColor = model.useCustomWireframeColor ? model.wireframeColor : RGB(o.red, o.green, o.blue);
+            COLORREF normalColor = useCustomNormalsColor ? normalsColor : RGB(o.red, o.green, o.blue);
+            for (GraphicPolygon p : o.polygons) {
+                // Draw the normals of the polygon:
+                Edge ne;
+                switch (drawNormals) {
+                case ID_NORMAL_POLYGONS_CALCULATED:
+                    ne = getNormalToPolygon(p, t, true);
                     drawLine(ne.start, ne.end, normalColor);
-                }
-                break;
-            case ID_NORMAL_VERTICES_GIVEN:
-                for (Edge e : p.edges) {
-                    if (!(e.start.normalX == 0 && e.start.normalY == 0 && e.start.normalZ == 0)) {
-                        ne = getNormalToVertex(e.start, t, false);
+                    break;
+                case ID_NORMAL_POLYGONS_GIVEN:
+                    ne = getNormalToPolygon(p, t, false);
+                    drawLine(ne.start, ne.end, normalColor);
+                    break;
+                case ID_NORMAL_VERTICES_CALCULATED:
+                    for (Edge e : p.edges) {
+                        ne = getNormalToVertex(e.start, t, true);
                         drawLine(ne.start, ne.end, normalColor);
                     }
-                }
-                break;
-            default:
-                break;
-            }
-            // Draw the silhouette of the object:
-            if (drawSilhouette) {
-                for (Edge e : p.edges) {
-                    vector<int> hashStart;
-                    hashStart.push_back((int)(e.start.x * HASH_PRECISION));
-                    hashStart.push_back((int)(e.start.y * HASH_PRECISION));
-                    hashStart.push_back((int)(e.start.z * HASH_PRECISION));
-                    vector<int> hashEnd;
-                    hashEnd.push_back((int)(e.end.x * HASH_PRECISION));
-                    hashEnd.push_back((int)(e.end.y * HASH_PRECISION));
-                    hashEnd.push_back((int)(e.end.z * HASH_PRECISION));
-                    vector<Vec4> polyNormalsAdjToStart = vertexAdjPolygonNormals[hashStart];
-                    vector<Vec4> polyNormalsAdjToEnd = vertexAdjPolygonNormals[hashEnd];
-                    Vec4 polyNormal1, polyNormal2;
-                    int pns = 0;
-                    for (Vec4 polyNormalStart : polyNormalsAdjToStart) {
-                        if (pns == 2) {
-                            break;
+                    break;
+                case ID_NORMAL_VERTICES_GIVEN:
+                    for (Edge e : p.edges) {
+                        if (!(e.start.normalX == 0 && e.start.normalY == 0 && e.start.normalZ == 0)) {
+                            ne = getNormalToVertex(e.start, t, false);
+                            drawLine(ne.start, ne.end, normalColor);
                         }
-                        for (Vec4 polyNormalEnd : polyNormalsAdjToEnd) {
-                            if (polyNormalEnd == polyNormalStart) {
-                                if (pns == 0) {
-                                    polyNormal1 = t * polyNormalStart;
-                                    pns++;
-                                    break;
-                                } else if (polyNormal1 != polyNormalStart) {
-                                    polyNormal2 = t * polyNormalStart;
-                                    pns++;
-                                    break;
+                    }
+                    break;
+                default:
+                    break;
+                }
+                // Draw the silhouette of the object:
+                if (drawSilhouette) {
+                    for (Edge e : p.edges) {
+                        vector<int> hashStart;
+                        hashStart.push_back((int)(e.start.x * HASH_PRECISION));
+                        hashStart.push_back((int)(e.start.y * HASH_PRECISION));
+                        hashStart.push_back((int)(e.start.z * HASH_PRECISION));
+                        vector<int> hashEnd;
+                        hashEnd.push_back((int)(e.end.x * HASH_PRECISION));
+                        hashEnd.push_back((int)(e.end.y * HASH_PRECISION));
+                        hashEnd.push_back((int)(e.end.z * HASH_PRECISION));
+                        vector<Vec4> polyNormalsAdjToStart = vertexAdjPolygonNormals[hashStart];
+                        vector<Vec4> polyNormalsAdjToEnd = vertexAdjPolygonNormals[hashEnd];
+                        Vec4 polyNormal1, polyNormal2;
+                        int pns = 0;
+                        for (Vec4 polyNormalStart : polyNormalsAdjToStart) {
+                            if (pns == 2) {
+                                break;
+                            }
+                            for (Vec4 polyNormalEnd : polyNormalsAdjToEnd) {
+                                if (polyNormalEnd == polyNormalStart) {
+                                    if (pns == 0) {
+                                        polyNormal1 = t * polyNormalStart;
+                                        pns++;
+                                        break;
+                                    } else if (polyNormal1 != polyNormalStart) {
+                                        polyNormal2 = t * polyNormalStart;
+                                        pns++;
+                                        break;
+                                    }
                                 }
                             }
                         }
-                    }
-                    if (pns == 2) {
-                        double dot = polyNormal1.z * polyNormal2.z;
-                        if (dot < 0) {
-                            // Edge is silhouette, draw it:
-                            Vec4 start = t * e.start;
-                            start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
-                            Vec4 start2 = Vec4(start.x / start.w, start.y + 1 / start.w, start.z / start.w, 1);
-                            Vec4 start3 = Vec4(start.x / start.w, start.y - 1 / start.w, start.z / start.w, 1);
-                            Vec4 start4 = Vec4(start.x / start.w, start.y + 2 / start.w, start.z / start.w, 1);
-                            Vec4 start5 = Vec4(start.x / start.w, start.y - 2 / start.w, start.z / start.w, 1);
-                            Vec4 end = t * e.end;
-                            end = Vec4(end.x / end.w, end.y / end.w, end.z / end.w, 1);
-                            Vec4 end2 = Vec4(end.x / end.w, end.y + 1 / end.w, end.z / end.w, 1);
-                            Vec4 end3 = Vec4(end.x / end.w, end.y - 1 / end.w, end.z / end.w, 1);
-                            Vec4 end4 = Vec4(end.x / end.w, end.y + 2 / end.w, end.z / end.w, 1);
-                            Vec4 end5 = Vec4(end.x / end.w, end.y - 2 / end.w, end.z / end.w, 1);
-                            drawLine(start, end, silhouetteColor);
-                            drawLine(start2, end2, silhouetteColor);
-                            drawLine(start3, end3, silhouetteColor);
-                            drawLine(start4, end4, silhouetteColor);
-                            drawLine(start5, end5, silhouetteColor);
+                        if (pns == 2) {
+                            double dot = polyNormal1.z * polyNormal2.z;
+                            if (dot < 0) {
+                                // Edge is silhouette, draw it:
+                                Vec4 start = t * e.start;
+                                start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
+                                Vec4 start2 = Vec4(start.x / start.w, start.y + 1 / start.w, start.z / start.w, 1);
+                                Vec4 start3 = Vec4(start.x / start.w, start.y - 1 / start.w, start.z / start.w, 1);
+                                Vec4 start4 = Vec4(start.x / start.w, start.y + 2 / start.w, start.z / start.w, 1);
+                                Vec4 start5 = Vec4(start.x / start.w, start.y - 2 / start.w, start.z / start.w, 1);
+                                Vec4 end = t * e.end;
+                                end = Vec4(end.x / end.w, end.y / end.w, end.z / end.w, 1);
+                                Vec4 end2 = Vec4(end.x / end.w, end.y + 1 / end.w, end.z / end.w, 1);
+                                Vec4 end3 = Vec4(end.x / end.w, end.y - 1 / end.w, end.z / end.w, 1);
+                                Vec4 end4 = Vec4(end.x / end.w, end.y + 2 / end.w, end.z / end.w, 1);
+                                Vec4 end5 = Vec4(end.x / end.w, end.y - 2 / end.w, end.z / end.w, 1);
+                                drawLine(start, end, silhouetteColor);
+                                drawLine(start2, end2, silhouetteColor);
+                                drawLine(start3, end3, silhouetteColor);
+                                drawLine(start4, end4, silhouetteColor);
+                                drawLine(start5, end5, silhouetteColor);
+                            }
                         }
                     }
                 }
             }
-        }
-        // Draw the bounding box of the object:
-        if (drawBoundingBox) {
-            for (Edge e : o.boundingBox) {
-                Vec4 start = t * e.start;
-                start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
-                Vec4 end = t * e.end;
-                end = Vec4(end.x / end.w, end.y / end.w, end.z / end.w, 1);
-                drawLine(start, end, objectColor);
-            }
-        }
-        // Draw the edges of the polygon in wireframe mode:
-        if (!renderScreen) {
-            for (GraphicPolygon p : o.polygons) {
-                if (bonusBackfaceCulling) {
-                    Vec4 normal = t * p.normal;
-                    if (normal.z < 0) {
-                        continue;
-                    }
-                }
-                for (Edge e : p.edges) {
+            // Draw the bounding box of the object:
+            if (drawBoundingBox) {
+                for (Edge e : o.boundingBox) {
                     Vec4 start = t * e.start;
                     start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
                     Vec4 end = t * e.end;
@@ -560,101 +532,136 @@ void CCGWorkView::RenderScene(int width, int height)
                     drawLine(start, end, objectColor);
                 }
             }
-        }
-        for (GraphicPolygon p : o.polygons) {
-            COLORREF flatShadingColor;
-            if (m_nLightShading == ID_LIGHT_SHADING_FLAT) {
-                Edge ne = getNormalToPolygon(p, t, useCalculateNormals);
-                flatShadingColor = getColorAfterShading(ne, objectColor, t);
-            }
-
-            vector<Edge> projectedEdges;
-            size_t y_min = UINT_MAX;
-            size_t y_max = 0;
-            for (Edge e : p.edges) {
-                Vec4 start = t * e.start;
-                start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
-                Vec4 end = t * e.end;
-                end = Vec4(end.x / end.w, end.y / end.w, end.z / end.w, 1);
-                y_min = (min(start.y, end.y)) < y_min ? (min(start.y, end.y)) : y_min;
-                y_max = (max(start.y, end.y)) > y_max ? (max(start.y, end.y)) : y_max;
-
-                if (m_nLightShading == ID_LIGHT_SHADING_GOURAUD) {
-                    Edge neStart = getNormalToVertex(e.start, t, useCalculateNormals);
-                    COLORREF cStart = getColorAfterShading(neStart, objectColor, t);
-                    start.r = GetRValue(cStart);
-                    start.g = GetGValue(cStart);
-                    start.b = GetBValue(cStart);
-                    Edge neEnd = getNormalToVertex(e.end, t, useCalculateNormals);
-                    COLORREF cEnd = getColorAfterShading(neEnd, objectColor, t);
-                    end.r = GetRValue(cEnd);
-                    end.g = GetGValue(cEnd);
-                    end.b = GetBValue(cEnd);
-                } else if (m_nLightShading == ID_SHADING_PHONG) {
-                    Edge ne_start = getNormalToVertex(e.start, t, useCalculateNormals);
-                    Vec4 start_dir = (ne_start.end - ne_start.start).normalize();
-                    start.dirX = start_dir.x;
-                    start.dirY = start_dir.y;
-                    start.dirZ = start_dir.z;
-                    Edge ne_end = getNormalToVertex(e.end, t, useCalculateNormals);
-                    Vec4 end_dir = (ne_end.end - ne_end.start).normalize();
-                    end.dirX = end_dir.x;
-                    end.dirY = end_dir.y;
-                    end.dirZ = end_dir.z;
-                }
-                projectedEdges.push_back(Edge(start, end));
-            }
-            for (size_t y = y_min; y <= y_max; y++) {
-                vector<std::pair<double, Edge>> edge_intersections;
-                for (Edge e : projectedEdges) {
-                    if ((e.start.y <= y && y < e.end.y) || (e.end.y <= y && y < e.start.y)) {
-                        if (e.end.x == e.start.x) {
-                            edge_intersections.push_back(std::pair<double, Edge>(e.start.x, e));
-                        } else {
-                            double x = ((y - e.start.y) / (e.end.y - e.start.y)) * (e.end.x - e.start.x) + e.start.x;
-                            edge_intersections.push_back(std::pair<double, Edge>(x, e));
+            // Draw the edges of the polygon in wireframe mode:
+            if (!renderScreen) {
+                for (GraphicPolygon p : o.polygons) {
+                    if (bonusBackfaceCulling) {
+                        Vec4 normal = t * p.normal;
+                        if (normal.z < 0) {
+                            continue;
                         }
                     }
+                    for (Edge e : p.edges) {
+                        Vec4 start = t * e.start;
+                        start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
+                        Vec4 end = t * e.end;
+                        end = Vec4(end.x / end.w, end.y / end.w, end.z / end.w, 1);
+                        drawLine(start, end, objectColor);
+                    }
+                }
+            }
+            for (GraphicPolygon p : o.polygons) {
+                COLORREF flatShadingColor;
+                if (m_nLightShading == ID_LIGHT_SHADING_FLAT) {
+                    Edge ne = getNormalToPolygon(p, t, useCalculateNormals);
+                    flatShadingColor = getColorAfterShading(ne, objectColor, t);
                 }
 
-                std::sort(edge_intersections.begin(), edge_intersections.end(),
-                    [](std::pair<double, Edge> p1, std::pair<double, Edge> p2) { return p1.first < p2.first; });
-
-                for (int k = 0; k < edge_intersections.size(); k += 2) {
-                    double l_x = edge_intersections[k].first;
-                    double r_x = edge_intersections[k + 1].first;
-                    Edge l_edge = edge_intersections[k].second;
-                    Edge r_edge = edge_intersections[k + 1].second;
-                    double l_z = l_edge.getZ(l_x, y);
-                    double r_z = r_edge.getZ(r_x, y);
-                    Edge scan_edge(Vec4(l_x, y, l_z, 1), Vec4(r_x, y, r_z, 1));
+                vector<Edge> projectedEdges;
+                size_t y_min = UINT_MAX;
+                size_t y_max = 0;
+                for (Edge e : p.edges) {
+                    Vec4 start = t * e.start;
+                    start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
+                    Vec4 end = t * e.end;
+                    end = Vec4(end.x / end.w, end.y / end.w, end.z / end.w, 1);
+                    y_min = (min(start.y, end.y)) < y_min ? (min(start.y, end.y)) : y_min;
+                    y_max = (max(start.y, end.y)) > y_max ? (max(start.y, end.y)) : y_max;
 
                     if (m_nLightShading == ID_LIGHT_SHADING_GOURAUD) {
-                        COLORREF l_color = l_edge.getColor(l_x, y);
-                        scan_edge.start.r = GetRValue(l_color);
-                        scan_edge.start.g = GetGValue(l_color);
-                        scan_edge.start.b = GetBValue(l_color);
-                        COLORREF r_color = r_edge.getColor(r_x, y);
-                        scan_edge.end.r = GetRValue(r_color);
-                        scan_edge.end.g = GetGValue(r_color);
-                        scan_edge.end.b = GetBValue(r_color);
+                        Edge neStart = getNormalToVertex(e.start, t, useCalculateNormals);
+                        COLORREF cStart = getColorAfterShading(neStart, objectColor, t);
+                        start.r = GetRValue(cStart);
+                        start.g = GetGValue(cStart);
+                        start.b = GetBValue(cStart);
+                        Edge neEnd = getNormalToVertex(e.end, t, useCalculateNormals);
+                        COLORREF cEnd = getColorAfterShading(neEnd, objectColor, t);
+                        end.r = GetRValue(cEnd);
+                        end.g = GetGValue(cEnd);
+                        end.b = GetBValue(cEnd);
                     } else if (m_nLightShading == ID_SHADING_PHONG) {
-                        Vec4 l_p_n_dir = l_edge.getPhongNormal(l_x, y);
-                        scan_edge.start.dirX = l_p_n_dir.x;
-                        scan_edge.start.dirY = l_p_n_dir.y;
-                        scan_edge.start.dirZ = l_p_n_dir.z;
-                        Vec4 r_p_n_dir = r_edge.getPhongNormal(r_x, y);
-                        scan_edge.end.dirX = r_p_n_dir.x;
-                        scan_edge.end.dirY = r_p_n_dir.y;
-                        scan_edge.end.dirZ = r_p_n_dir.z;
+                        Edge ne_start = getNormalToVertex(e.start, t, useCalculateNormals);
+                        Vec4 start_dir = (ne_start.end - ne_start.start).normalize();
+                        start.dirX = start_dir.x;
+                        start.dirY = start_dir.y;
+                        start.dirZ = start_dir.z;
+                        Edge ne_end = getNormalToVertex(e.end, t, useCalculateNormals);
+                        Vec4 end_dir = (ne_end.end - ne_end.start).normalize();
+                        end.dirX = end_dir.x;
+                        end.dirY = end_dir.y;
+                        end.dirZ = end_dir.z;
+                    }
+                    projectedEdges.push_back(Edge(start, end));
+                }
+                for (size_t y = y_min; y <= y_max; y++) {
+                    vector<std::pair<double, Edge>> edge_intersections;
+                    for (Edge e : projectedEdges) {
+                        if ((e.start.y <= y && y < e.end.y) || (e.end.y <= y && y < e.start.y)) {
+                            if (e.end.x == e.start.x) {
+                                edge_intersections.push_back(std::pair<double, Edge>(e.start.x, e));
+                            } else {
+                                double x = ((y - e.start.y) / (e.end.y - e.start.y)) * (e.end.x - e.start.x) + e.start.x;
+                                edge_intersections.push_back(std::pair<double, Edge>(x, e));
+                            }
+                        }
                     }
 
-                    for (double current_x = scan_edge.start.x; current_x <= scan_edge.end.x; current_x++) {
-                        double current_z = scan_edge.getZ(current_x, y);
-                        if ((current_x < zbuffer.size() && current_x >= 0 && y >= 0 && y < zbuffer[0].size()) && current_z < zbuffer[current_x][y]) {
-                            if (cullBackfaces) {
-                                zbuffer[current_x][y] = current_z;
-                                if (renderScreen) {
+                    std::sort(edge_intersections.begin(), edge_intersections.end(),
+                        [](std::pair<double, Edge> p1, std::pair<double, Edge> p2) { return p1.first < p2.first; });
+
+                    for (int k = 0; k < edge_intersections.size(); k += 2) {
+                        double l_x = edge_intersections[k].first;
+                        double r_x = edge_intersections[k + 1].first;
+                        Edge l_edge = edge_intersections[k].second;
+                        Edge r_edge = edge_intersections[k + 1].second;
+                        double l_z = l_edge.getZ(l_x, y);
+                        double r_z = r_edge.getZ(r_x, y);
+                        Edge scan_edge(Vec4(l_x, y, l_z, 1), Vec4(r_x, y, r_z, 1));
+
+                        if (m_nLightShading == ID_LIGHT_SHADING_GOURAUD) {
+                            COLORREF l_color = l_edge.getColor(l_x, y);
+                            scan_edge.start.r = GetRValue(l_color);
+                            scan_edge.start.g = GetGValue(l_color);
+                            scan_edge.start.b = GetBValue(l_color);
+                            COLORREF r_color = r_edge.getColor(r_x, y);
+                            scan_edge.end.r = GetRValue(r_color);
+                            scan_edge.end.g = GetGValue(r_color);
+                            scan_edge.end.b = GetBValue(r_color);
+                        } else if (m_nLightShading == ID_SHADING_PHONG) {
+                            Vec4 l_p_n_dir = l_edge.getPhongNormal(l_x, y);
+                            scan_edge.start.dirX = l_p_n_dir.x;
+                            scan_edge.start.dirY = l_p_n_dir.y;
+                            scan_edge.start.dirZ = l_p_n_dir.z;
+                            Vec4 r_p_n_dir = r_edge.getPhongNormal(r_x, y);
+                            scan_edge.end.dirX = r_p_n_dir.x;
+                            scan_edge.end.dirY = r_p_n_dir.y;
+                            scan_edge.end.dirZ = r_p_n_dir.z;
+                        }
+
+                        for (double current_x = scan_edge.start.x; current_x <= scan_edge.end.x; current_x++) {
+                            double current_z = scan_edge.getZ(current_x, y);
+                            if ((current_x < zbuffer.size() && current_x >= 0 && y >= 0 && y < zbuffer[0].size()) && current_z < zbuffer[current_x][y]) {
+                                if (cullBackfaces) {
+                                    zbuffer[current_x][y] = current_z;
+                                    if (renderScreen) {
+                                        if (m_nLightShading == ID_LIGHT_SHADING_FLAT) {
+                                            cbuffer[current_x][y] = flatShadingColor;
+                                        } else if (m_nLightShading == ID_LIGHT_SHADING_GOURAUD) {
+                                            COLORREF gouraudShadingColor = scan_edge.getColor(current_x, y);
+                                            cbuffer[current_x][y] = gouraudShadingColor;
+                                        } else if (m_nLightShading == ID_SHADING_PHONG) {
+                                            Vec4 p_n_dir = scan_edge.getPhongNormal(current_x, y);
+                                            Vec4 p_ne_start(current_x, y, current_z, 1);
+                                            Vec4 p_ne_end = p_ne_start + p_n_dir;
+                                            p_ne_end.w = 1;
+                                            Edge p_ne(p_ne_start, p_ne_end);
+                                            COLORREF phongShadingColor = getColorAfterShading(p_ne, objectColor, t);
+                                            cbuffer[current_x][y] = phongShadingColor;
+                                        }
+                                    } else {
+                                        cbuffer[current_x][y] = backgroundColor;
+                                    }
+                                } else if (renderScreen) {
                                     if (m_nLightShading == ID_LIGHT_SHADING_FLAT) {
                                         cbuffer[current_x][y] = flatShadingColor;
                                     } else if (m_nLightShading == ID_LIGHT_SHADING_GOURAUD) {
@@ -669,23 +676,6 @@ void CCGWorkView::RenderScene(int width, int height)
                                         COLORREF phongShadingColor = getColorAfterShading(p_ne, objectColor, t);
                                         cbuffer[current_x][y] = phongShadingColor;
                                     }
-                                } else {
-                                    cbuffer[current_x][y] = backgroundColor;
-                                }
-                            } else if (renderScreen) {
-                                if (m_nLightShading == ID_LIGHT_SHADING_FLAT) {
-                                    cbuffer[current_x][y] = flatShadingColor;
-                                } else if (m_nLightShading == ID_LIGHT_SHADING_GOURAUD) {
-                                    COLORREF gouraudShadingColor = scan_edge.getColor(current_x, y);
-                                    cbuffer[current_x][y] = gouraudShadingColor;
-                                } else if (m_nLightShading == ID_SHADING_PHONG) {
-                                    Vec4 p_n_dir = scan_edge.getPhongNormal(current_x, y);
-                                    Vec4 p_ne_start(current_x, y, current_z, 1);
-                                    Vec4 p_ne_end = p_ne_start + p_n_dir;
-                                    p_ne_end.w = 1;
-                                    Edge p_ne(p_ne_start, p_ne_end);
-                                    COLORREF phongShadingColor = getColorAfterShading(p_ne, objectColor, t);
-                                    cbuffer[current_x][y] = phongShadingColor;
                                 }
                             }
                         }
@@ -900,8 +890,8 @@ COLORREF CCGWorkView::getColorAfterShading(Edge& ne, COLORREF objectColor, Mat4&
     double fogColorG = GetGValue(fogColor) / 255.0;
     double fogColorB = GetBValue(fogColor) / 255.0;
     if (enableFog) {
-        double fogStart = 2;  // Z (depth) values, closest to the viewer.
-        double fogEnd = 1;    // Z (depth) values, farthest away from the viewer.
+        double fogStart = 2; // Z (depth) values, closest to the viewer.
+        double fogEnd = 1; // Z (depth) values, farthest away from the viewer.
         fogFactor = (fogEnd - ne.start.z) / (fogEnd - fogStart);
         fogFactor = max(0, min(1, fogFactor));
     }
@@ -942,29 +932,7 @@ void CCGWorkView::OnFileLoad()
         graphicObjects.clear();
         CGSkelProcessIritDataFiles(m_strItdFileName, 1);
         // Open the file and read it.
-        // Your code here...
-
-        thetaX.clear();
-        thetaY.clear();
-        thetaZ.clear();
-        scaleX.clear();
-        scaleY.clear();
-        scaleZ.clear();
-        translateX.clear();
-        translateY.clear();
-        translateZ.clear();
-        for (GraphicObject o : graphicObjects) {
-            thetaX.push_back(0);
-            thetaY.push_back(0);
-            thetaZ.push_back(0);
-            scaleX.push_back(0.14);
-            scaleY.push_back(0.14);
-            scaleZ.push_back(0.14);
-            translateX.push_back(0);
-            translateY.push_back(0);
-            translateZ.push_back(0);
-        }
-        objIdx = graphicObjects.size(); // Default to selecting all objects.
+        models.push_back(GraphicModel(dlg.GetFileName(), graphicObjects));
 
         Invalidate(); // force a WM_PAINT for drawing.
     }
@@ -1188,73 +1156,73 @@ void CCGWorkView::Transform(CPoint diff)
     double dx = double(diff.x * mouseSensitivity) / 1000;
     double dy = double(-diff.y * mouseSensitivity) / 1000;
 
-    if (objIdx == graphicObjects.size()) {
-        // Transform all objects.
-        for (int i = 0; i < objIdx; i++) {
-            Transform(i, dx, dy);
+    if (modelIdx == models.size()) {
+        // Transform all models.
+        for (int i = 0; i < modelIdx; i++) {
+            Transform(models[i], dx, dy);
         }
     } else {
-        Transform(objIdx, dx, dy);
+        Transform(models[modelIdx], dx, dy);
     }
     Invalidate();
 }
 
 // i == the index of the object to transform.
-void CCGWorkView::Transform(int i, double dx, double dy)
+void CCGWorkView::Transform(GraphicModel& model, double dx, double dy)
 {
     switch (m_nAxis) {
     case ID_AXIS_X:
         switch (m_nAction) {
         case ID_ACTION_ROTATE:
-            thetaX[i] += dx;
+            model.thetaX += dx;
             break;
         case ID_ACTION_SCALE:
-            scaleX[i] = max(0.1, scaleX[i] + dx);
+            model.scaleX = max(0.1, model.scaleX + dx);
             break;
         case ID_ACTION_TRANSLATE:
-            translateX[i] += dx;
+            model.translateX += dx;
             break;
         }
         break;
     case ID_AXIS_Y:
         switch (m_nAction) {
         case ID_ACTION_ROTATE:
-            thetaY[i] += dx;
+            model.thetaY += dx;
             break;
         case ID_ACTION_SCALE:
-            scaleY[i] = max(0.1, scaleY[i] + dx);
+            model.scaleY = max(0.1, model.scaleY + dx);
             break;
         case ID_ACTION_TRANSLATE:
-            translateY[i] += dx;
+            model.translateY += dx;
             break;
         }
         break;
     case ID_AXIS_Z:
         switch (m_nAction) {
         case ID_ACTION_ROTATE:
-            thetaZ[i] += dx;
+            model.thetaZ += dx;
             break;
         case ID_ACTION_SCALE:
-            scaleZ[i] = max(0.1, scaleZ[i] + dx);
+            model.scaleZ = max(0.1, model.scaleZ + dx);
             break;
         case ID_ACTION_TRANSLATE:
-            translateZ[i] += dx;
+            model.translateZ += dx;
             break;
         }
         break;
     case ID_AXIS_XY:
         switch (m_nAction) {
         case ID_ACTION_ROTATE:
-            thetaX[i] += dy;
-            thetaY[i] += dx;
+            model.thetaX += dy;
+            model.thetaY += dx;
             break;
         case ID_ACTION_SCALE:
-            scaleX[i] = max(0.1, scaleX[i] + dx);
-            scaleY[i] = max(0.1, scaleY[i] + dy);
+            model.scaleX = max(0.1, model.scaleX + dx);
+            model.scaleY = max(0.1, model.scaleY + dy);
             break;
         case ID_ACTION_TRANSLATE:
-            translateX[i] += dx;
-            translateY[i] += dy;
+            model.translateX += dx;
+            model.translateY += dy;
             break;
         }
         break;
@@ -1350,10 +1318,21 @@ void CCGWorkView::OnOptionsWireframecolor()
 {
     CColorDialog colorDialog;
     colorDialog.m_cc.Flags |= CC_RGBINIT;
-    colorDialog.m_cc.rgbResult = wireframeColor;
+    if (modelIdx == models.size()) {
+        colorDialog.m_cc.rgbResult = models[0].wireframeColor;
+    } else {
+        colorDialog.m_cc.rgbResult = models[modelIdx].wireframeColor;
+    }
     if (colorDialog.DoModal() == IDOK) {
-        wireframeColor = colorDialog.GetColor();
-        useCustomWireframeColor = true;
+        if (modelIdx == models.size()) {
+            for (int i = 0; i < modelIdx; i++) {
+                models[i].wireframeColor = colorDialog.GetColor();
+                models[i].useCustomWireframeColor = true;
+            }
+        } else {
+            models[modelIdx].wireframeColor = colorDialog.GetColor();
+            models[modelIdx].useCustomWireframeColor = true;
+        }
         Invalidate();
     }
 }
@@ -1419,10 +1398,11 @@ void CCGWorkView::OnActionObject()
 void CCGWorkView::OnActionSelectedobject()
 {
     ObjectSelectionDialog dlg;
-    dlg.setIndex(objIdx);
-    dlg.setMaxIndex(graphicObjects.size());
+    dlg.setModels(models);
+    dlg.setIndex(modelIdx);
+    dlg.setMaxIndex(models.size());
     if (dlg.DoModal() == IDOK) {
-        objIdx = dlg.getIndex();
+        modelIdx = dlg.getIndex();
     }
 }
 

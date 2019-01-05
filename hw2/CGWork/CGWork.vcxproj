@@ -192,6 +192,7 @@
     </ClCompile>
     <ClCompile Include="Edge.cpp" />
     <ClCompile Include="FineNessDialog.cpp" />
+    <ClCompile Include="GraphicModel.cpp" />
     <ClCompile Include="GraphicObject.cpp" />
     <ClCompile Include="iritSkel.cpp" />
     <ClCompile Include="LightDialog.cpp" />
@@ -236,6 +237,7 @@
     <ClInclude Include="CGWorkView.h" />
     <ClInclude Include="Edge.h" />
     <ClInclude Include="FineNessDialog.h" />
+    <ClInclude Include="GraphicModel.h" />
     <ClInclude Include="GraphicObject.h" />
     <ClInclude Include="iritSkel.h" />
     <ClInclude Include="Light.h" />

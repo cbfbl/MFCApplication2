@@ -75,6 +75,9 @@
     <ClCompile Include="PngRenderDialog.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="GraphicModel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="CGWork.rc">
@@ -215,6 +218,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="PngRenderDialog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GraphicModel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
