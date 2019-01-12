@@ -22,6 +22,7 @@
 using std::vector;
 #include "PngWrapper.h"
 #include "GraphicModel.h"
+#include "AliasFilter.h"
 
 
 class CCGWorkView : public CView
@@ -82,6 +83,12 @@ private:
 	vector<vector<double>> zbuffer;
     vector<vector<COLORREF>> cbuffer;
     vector<vector<COLORREF>> bgbuffer;
+
+    int antiAliasing;
+    AliasFilter filterSinc3, filterSinc5;
+    AliasFilter filterBox3, filterBox5;
+    AliasFilter filterHat3, filterHat5;
+    AliasFilter filterGaussian3, filterGaussian5;
 
     void Transform(CPoint diff);
     void Transform(GraphicModel& model, double dx, double dy);
@@ -216,6 +223,24 @@ public:
 	afx_msg void OnFogEnable();
     afx_msg void OnUpdateFogEnable(CCmdUI *pCmdUI);
 	afx_msg void OnFogColor();
+    afx_msg void OnAntiAliasingNone();
+    afx_msg void OnUpdateAntiAliasingNone(CCmdUI* pCmdUI);
+    afx_msg void OnAntiAliasingSinc3();
+    afx_msg void OnUpdateAntiAliasingSinc3(CCmdUI* pCmdUI);
+    afx_msg void OnAntiAliasingSinc5();
+    afx_msg void OnUpdateAntiAliasingSinc5(CCmdUI* pCmdUI);
+    afx_msg void OnAntiAliasingBox3();
+    afx_msg void OnUpdateAntiAliasingBox3(CCmdUI* pCmdUI);
+    afx_msg void OnAntiAliasingBox5();
+    afx_msg void OnUpdateAntiAliasingBox5(CCmdUI* pCmdUI);
+    afx_msg void OnAntiAliasingHat3();
+    afx_msg void OnUpdateAntiAliasingHat3(CCmdUI* pCmdUI);
+    afx_msg void OnAntiAliasingHat5();
+    afx_msg void OnUpdateAntiAliasingHat5(CCmdUI* pCmdUI);
+    afx_msg void OnAntiAliasingGaussian3();
+    afx_msg void OnUpdateAntiAliasingGaussian3(CCmdUI* pCmdUI);
+    afx_msg void OnAntiAliasingGaussian5();
+    afx_msg void OnUpdateAntiAliasingGaussian5(CCmdUI* pCmdUI);
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp

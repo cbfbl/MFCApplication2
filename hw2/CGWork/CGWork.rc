@@ -91,6 +91,7 @@ BEGIN
             MENUITEM "Polygons (Given by model)",   ID_NORMAL_POLYGONS_GIVEN
             MENUITEM "Vertices (Calculated)",       ID_NORMAL_VERTICES_CALCULATED
             MENUITEM "Vertices (Given by model)",   ID_NORMAL_VERTICES_GIVEN
+            MENUITEM SEPARATOR
             MENUITEM "None",                        ID_NORMALS_NONE
         END
         MENUITEM "Inverted Normals",            ID_VIEW_INVERTEDNORMALS
@@ -156,6 +157,19 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "Stretch",                     ID_BG_STRETCH
         MENUITEM "Repeat",                      ID_BG_REPEAT
+    END
+    POPUP "&Anti Aliasing"
+    BEGIN
+        MENUITEM "Sinc3",                       ID_ANTIALIASING_SINC3
+        MENUITEM "Sinc5",                       ID_ANTIALIASING_SINC5
+        MENUITEM "Box3",                        ID_ANTIALIASING_BOX3
+        MENUITEM "Box5",                        ID_ANTIALIASING_BOX5
+        MENUITEM "Hat3",                        ID_ANTIALIASING_HAT3
+        MENUITEM "Hat5",                        ID_ANTIALIASING_HAT5
+        MENUITEM "Gaussian3",                   ID_ANTIALIASING_GAUSSIAN3
+        MENUITEM "Gaussian5",                   ID_ANTIALIASING_GAUSSIAN5
+        MENUITEM SEPARATOR
+        MENUITEM "None",                        ID_ANTIALIASING_NONE
     END
     POPUP "&Help"
     BEGIN

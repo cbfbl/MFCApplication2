@@ -117,7 +117,24 @@ ON_COMMAND(ID_BG_REPEAT, OnBgRepeat)
 ON_UPDATE_COMMAND_UI(ID_BG_REPEAT, OnUpdateBgRepeat)
 ON_COMMAND(ID_FOG_COLOR, OnFogColor)
 ON_COMMAND(ID_FOG_ENABLE, OnFogEnable)
-ON_UPDATE_COMMAND_UI(ID_FOG_ENABLE, OnUpdateFogEnable)
+ON_COMMAND(ID_ANTIALIASING_NONE, OnAntiAliasingNone)
+ON_UPDATE_COMMAND_UI(ID_ANTIALIASING_NONE, OnUpdateAntiAliasingNone)
+ON_COMMAND(ID_ANTIALIASING_SINC3, OnAntiAliasingSinc3)
+ON_UPDATE_COMMAND_UI(ID_ANTIALIASING_SINC3, OnUpdateAntiAliasingSinc3)
+ON_COMMAND(ID_ANTIALIASING_SINC5, OnAntiAliasingSinc5)
+ON_UPDATE_COMMAND_UI(ID_ANTIALIASING_SINC5, OnUpdateAntiAliasingSinc5)
+ON_COMMAND(ID_ANTIALIASING_BOX3, OnAntiAliasingBox3)
+ON_UPDATE_COMMAND_UI(ID_ANTIALIASING_BOX3, OnUpdateAntiAliasingBox3)
+ON_COMMAND(ID_ANTIALIASING_BOX5, OnAntiAliasingBox5)
+ON_UPDATE_COMMAND_UI(ID_ANTIALIASING_BOX5, OnUpdateAntiAliasingBox5)
+ON_COMMAND(ID_ANTIALIASING_HAT3, OnAntiAliasingHat3)
+ON_UPDATE_COMMAND_UI(ID_ANTIALIASING_HAT3, OnUpdateAntiAliasingHat3)
+ON_COMMAND(ID_ANTIALIASING_HAT5, OnAntiAliasingHat5)
+ON_UPDATE_COMMAND_UI(ID_ANTIALIASING_HAT5, OnUpdateAntiAliasingHat5)
+ON_COMMAND(ID_ANTIALIASING_GAUSSIAN3, OnAntiAliasingGaussian3)
+ON_UPDATE_COMMAND_UI(ID_ANTIALIASING_GAUSSIAN3, OnUpdateAntiAliasingGaussian3)
+ON_COMMAND(ID_ANTIALIASING_GAUSSIAN5, OnAntiAliasingGaussian5)
+ON_UPDATE_COMMAND_UI(ID_ANTIALIASING_GAUSSIAN5, OnUpdateAntiAliasingGaussian5)
 //}}AFX_MSG_MAP
 ON_WM_TIMER()
 ON_WM_KEYUP()
@@ -163,6 +180,7 @@ CCGWorkView::CCGWorkView()
     drawSilhouette = false;
     lastCursorLocation = CPoint();
     modelIdx = 0;
+    drawNormals = ID_NORMALS_NONE;
     normalsColor = RGB(0, 0, 0);
     useCustomNormalsColor = false;
     backgroundColor = RGB(255, 255, 255);
@@ -179,6 +197,56 @@ CCGWorkView::CCGWorkView()
     enableFog = false;
     fogColor = RGB(220, 220, 220);
     //bgbuffer = vector<vector<COLORREF>>(0);
+
+    antiAliasing = ID_ANTIALIASING_NONE;
+    filterSinc3 = AliasFilter(3, {
+        { 2, 3, 2 },
+        { 3, 4, 3 },
+        { 2, 3, 2 },
+    });
+    filterSinc5 = AliasFilter(5, {
+        { -2, -1, 0, -1, -2 },
+        { -1, 4, 6, 4, -1 },
+        { 0, 6, 9, 6, 0 },
+        { -2, -1, 0, -1, -2 },
+        { -1, 4, 6, 4, -1 },
+    });
+    filterBox3 = AliasFilter(3, {
+        { 1, 1, 1 },
+        { 1, 1, 1 },
+        { 1, 1, 1 },
+    });
+    filterBox5 = AliasFilter(5, {
+        { 1, 1, 1, 1, 1 },
+        { 1, 1, 1, 1, 1 },
+        { 1, 1, 1, 1, 1 },
+        { 1, 1, 1, 1, 1 },
+        { 1, 1, 1, 1, 1 },
+    });
+    filterHat3 = AliasFilter(3, {
+        { 1, 2, 1 },
+        { 2, 4, 2 },
+        { 1, 2, 1 },
+    });
+    filterHat5 = AliasFilter(5, {
+        { 1, 2, 3, 2, 1 },
+        { 2, 4, 6, 4, 2 },
+        { 3, 6, 9, 6, 3 },
+        { 2, 4, 6, 4, 2 },
+        { 1, 2, 3, 2, 1 },
+    });
+    filterGaussian3 = AliasFilter(3, {
+        { 1, 2, 1 },
+        { 2, 5, 2 },
+        { 1, 2, 1 },
+    });
+    filterGaussian5 = AliasFilter(5, {
+        { 1, 1, 1, 1, 1 },
+        { 1, 2, 4, 2, 1 },
+        { 1, 4, 10, 4, 1 },
+        { 1, 2, 4, 2, 1 },
+        { 1, 1, 1, 1, 1 },
+    });
 }
 
 CCGWorkView::~CCGWorkView()
@@ -277,15 +345,6 @@ void CCGWorkView::OnSize(UINT nType, int cx, int cy)
     DeleteObject(m_pDbBitMap);
     m_pDbBitMap = CreateCompatibleBitmap(m_pDC->m_hDC, r.right, r.bottom);
     m_pDbDC->SelectObject(m_pDbBitMap);
-
-    double half_w = r.Width() / 2;
-    double half_h = r.Height() / 2;
-
-    screen = Mat4(
-        Vec4(half_h, 0, 0, half_w),
-        Vec4(0, -half_h, 0, half_h),
-        Vec4(0, 0, 1, 0),
-        Vec4(0, 0, 0, 1));
 }
 
 BOOL CCGWorkView::SetupViewingFrustum(void)
@@ -341,13 +400,58 @@ void CCGWorkView::OnDraw(CDC* pDC)
     CDC* pDCToUse = /*m_pDC*/ m_pDbDC;
 
     pDCToUse->FillSolidRect(&r, backgroundColor);
-    RenderScene(m_WindowWidth, m_WindowHeight);
-    for (size_t i = 0; i < m_WindowWidth; i++) {
-        for (size_t j = 0; j < m_WindowHeight; j++) {
-            if (cbuffer[i][j] != backgroundColor) {
-                pDCToUse->SetPixel(i, j, cbuffer[i][j]);
+    int width = m_WindowWidth;
+    int height = m_WindowHeight;
+
+    vector<vector<COLORREF>> cbufferFiltered(width);
+    vector<vector<COLORREF>>* cbufferToUse;
+    if (antiAliasing != ID_ANTIALIASING_NONE) {
+        AliasFilter* filter;
+        switch (antiAliasing) {
+        case ID_ANTIALIASING_SINC3:
+            filter = &filterSinc3;
+            break;
+        case ID_ANTIALIASING_SINC5:
+            filter = &filterSinc5;
+            break;
+        case ID_ANTIALIASING_BOX3:
+            filter = &filterBox3;
+            break;
+        case ID_ANTIALIASING_BOX5:
+            filter = &filterBox5;
+            break;
+        case ID_ANTIALIASING_HAT3:
+            filter = &filterHat3;
+            break;
+        case ID_ANTIALIASING_HAT5:
+            filter = &filterHat5;
+            break;
+        case ID_ANTIALIASING_GAUSSIAN3:
+            filter = &filterGaussian3;
+            break;
+        case ID_ANTIALIASING_GAUSSIAN5:
+            filter = &filterGaussian5;
+            break;
+        }
+        RenderScene(width * filter->size, height * filter->size);
+        for (size_t i = 0; i < width; i++) {
+            cbufferFiltered[i] = vector<COLORREF>(height);
+            for (size_t j = 0; j < height; j++) {
+                cbufferFiltered[i][j] = filter->applyFilter(cbuffer, i * filter->size + filter->size2, j * filter->size + filter->size2);
+            }
+        }
+        cbufferToUse = &cbufferFiltered;
+    } else {
+        RenderScene(width, height);
+        cbufferToUse = &cbuffer;
+    }
+
+    for (size_t i = 0; i < width; i++) {
+        for (size_t j = 0; j < height; j++) {
+            if ((*cbufferToUse)[i][j] != backgroundColor) {
+                pDCToUse->SetPixel(i, j, (*cbufferToUse)[i][j]);
             } else if (!bgbuffer.empty()) {
-                pDCToUse->SetPixel(i, j, getBgValue(i, j, m_WindowWidth, m_WindowHeight));
+                pDCToUse->SetPixel(i, j, getBgValue(i, j, width, height));
             }
         }
     }
@@ -359,6 +463,15 @@ void CCGWorkView::OnDraw(CDC* pDC)
 
 void CCGWorkView::RenderScene(int width, int height)
 {
+    double half_w = width / 2;
+    double half_h = height / 2;
+
+    screen = Mat4(
+        Vec4(half_h, 0, 0, half_w),
+        Vec4(0, -half_h, 0, half_h),
+        Vec4(0, 0, 1, 0),
+        Vec4(0, 0, 0, 1));
+
     zbuffer = vector<vector<double>>(width);
     for (size_t i = 0; i < width; i++) {
         zbuffer[i] = vector<double>(height);
@@ -1477,15 +1590,6 @@ void CCGWorkView::OnRenderFile()
         int height = dialog.getHeight();
         CFileDialog fileDialog(FALSE, _T("png"), _T("*.png"), OFN_OVERWRITEPROMPT, _T ("PNG (*.png)|*.png|All Files (*.*)|*.*||"));
         if (fileDialog.DoModal() == IDOK) {
-            double half_w = width / 2;
-            double half_h = height / 2;
-            Mat4 oldScreen = Mat4(screen);
-            screen = Mat4(
-                Vec4(half_h, 0, 0, half_w),
-                Vec4(0, -half_h, 0, half_h),
-                Vec4(0, 0, 1, 0),
-                Vec4(0, 0, 0, 1));
-
             CStringA pngPath = CStringA(fileDialog.GetPathName());
             PngWrapper png(pngPath, width, height);
             png.InitWritePng();
@@ -1495,11 +1599,53 @@ void CCGWorkView::OnRenderFile()
                     png.SetValue(x, y, bg);
                 }
             }
-            RenderScene(width, height);
+            vector<vector<COLORREF>> cbufferFiltered(width);
+            vector<vector<COLORREF>>* cbufferToUse;
+            if (antiAliasing != ID_ANTIALIASING_NONE) {
+                AliasFilter* filter;
+                switch (antiAliasing) {
+                case ID_ANTIALIASING_SINC3:
+                    filter = &filterSinc3;
+                    break;
+                case ID_ANTIALIASING_SINC5:
+                    filter = &filterSinc5;
+                    break;
+                case ID_ANTIALIASING_BOX3:
+                    filter = &filterBox3;
+                    break;
+                case ID_ANTIALIASING_BOX5:
+                    filter = &filterBox5;
+                    break;
+                case ID_ANTIALIASING_HAT3:
+                    filter = &filterHat3;
+                    break;
+                case ID_ANTIALIASING_HAT5:
+                    filter = &filterHat5;
+                    break;
+                case ID_ANTIALIASING_GAUSSIAN3:
+                    filter = &filterGaussian3;
+                    break;
+                case ID_ANTIALIASING_GAUSSIAN5:
+                    filter = &filterGaussian5;
+                    break;
+                }
+                RenderScene(width * filter->size, height * filter->size);
+                for (size_t i = 0; i < width; i++) {
+                    cbufferFiltered[i] = vector<COLORREF>(height);
+                    for (size_t j = 0; j < height; j++) {
+                        cbufferFiltered[i][j] = filter->applyFilter(cbuffer, i * filter->size + filter->size2, j * filter->size + filter->size2);
+                    }
+                }
+                cbufferToUse = &cbufferFiltered;
+            } else {
+                RenderScene(width, height);
+                cbufferToUse = &cbuffer;
+            }
+
             for (size_t i = 0; i < width; i++) {
                 for (size_t j = 0; j < height; j++) {
-                    if (cbuffer[i][j] != backgroundColor) {
-                        COLORREF c = cbuffer[i][j];
+                    if ((*cbufferToUse)[i][j] != backgroundColor) {
+                        COLORREF c = (*cbufferToUse)[i][j];
                         png.SetValue(i, j, SET_RGB(GetRValue(c), GetGValue(c), GetBValue(c)));
                     } else if (!bgbuffer.empty()) {
                         COLORREF c = getBgValue(i, j, width, height);
@@ -1508,7 +1654,6 @@ void CCGWorkView::OnRenderFile()
                 }
             }
             png.WritePng();
-            screen = Mat4(oldScreen);
         }
     }
 }
@@ -1615,5 +1760,88 @@ void CCGWorkView::OnUpdateFogEnable(CCmdUI* pCmdUI)
 void CCGWorkView::OnFogEnable()
 {
     enableFog = !enableFog;
+    Invalidate();
+}
+
+
+void CCGWorkView::OnUpdateAntiAliasingNone(CCmdUI* pCmdUI)
+{
+    pCmdUI->SetCheck(antiAliasing == ID_ANTIALIASING_NONE);
+}
+void CCGWorkView::OnAntiAliasingNone()
+{
+    antiAliasing = ID_ANTIALIASING_NONE;
+    Invalidate();
+}
+void CCGWorkView::OnUpdateAntiAliasingSinc3(CCmdUI* pCmdUI)
+{
+    pCmdUI->SetCheck(antiAliasing == ID_ANTIALIASING_SINC3);
+}
+void CCGWorkView::OnAntiAliasingSinc3()
+{
+    antiAliasing = ID_ANTIALIASING_SINC3;
+    Invalidate();
+}
+void CCGWorkView::OnUpdateAntiAliasingSinc5(CCmdUI* pCmdUI)
+{
+    pCmdUI->SetCheck(antiAliasing == ID_ANTIALIASING_SINC5);
+}
+void CCGWorkView::OnAntiAliasingSinc5()
+{
+    antiAliasing = ID_ANTIALIASING_SINC5;
+    Invalidate();
+}
+void CCGWorkView::OnUpdateAntiAliasingBox3(CCmdUI* pCmdUI)
+{
+    pCmdUI->SetCheck(antiAliasing == ID_ANTIALIASING_BOX3);
+}
+void CCGWorkView::OnAntiAliasingBox3()
+{
+    antiAliasing = ID_ANTIALIASING_BOX3;
+    Invalidate();
+}
+void CCGWorkView::OnUpdateAntiAliasingBox5(CCmdUI* pCmdUI)
+{
+    pCmdUI->SetCheck(antiAliasing == ID_ANTIALIASING_BOX5);
+}
+void CCGWorkView::OnAntiAliasingBox5()
+{
+    antiAliasing = ID_ANTIALIASING_BOX5;
+    Invalidate();
+}
+void CCGWorkView::OnUpdateAntiAliasingHat3(CCmdUI* pCmdUI)
+{
+    pCmdUI->SetCheck(antiAliasing == ID_ANTIALIASING_HAT3);
+}
+void CCGWorkView::OnAntiAliasingHat3()
+{
+    antiAliasing = ID_ANTIALIASING_HAT3;
+    Invalidate();
+}
+void CCGWorkView::OnUpdateAntiAliasingHat5(CCmdUI* pCmdUI)
+{
+    pCmdUI->SetCheck(antiAliasing == ID_ANTIALIASING_HAT5);
+}
+void CCGWorkView::OnAntiAliasingHat5()
+{
+    antiAliasing = ID_ANTIALIASING_HAT5;
+    Invalidate();
+}
+void CCGWorkView::OnUpdateAntiAliasingGaussian3(CCmdUI* pCmdUI)
+{
+    pCmdUI->SetCheck(antiAliasing == ID_ANTIALIASING_GAUSSIAN3);
+}
+void CCGWorkView::OnAntiAliasingGaussian3()
+{
+    antiAliasing = ID_ANTIALIASING_GAUSSIAN3;
+    Invalidate();
+}
+void CCGWorkView::OnUpdateAntiAliasingGaussian5(CCmdUI* pCmdUI)
+{
+    pCmdUI->SetCheck(antiAliasing == ID_ANTIALIASING_GAUSSIAN5);
+}
+void CCGWorkView::OnAntiAliasingGaussian5()
+{
+    antiAliasing = ID_ANTIALIASING_GAUSSIAN5;
     Invalidate();
 }

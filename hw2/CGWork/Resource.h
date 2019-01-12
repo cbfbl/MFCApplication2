@@ -114,13 +114,23 @@
 #define ID_SHADING_PHONG                32846
 #define ID_FOG_ENABLE                   32847
 #define ID_FOG_COLOR                    32848
+#define ID_ANTIALIASING_BOX3            32849
+#define ID_ANTIALIASING_NONE            32850
+#define ID_Menu32851                    32851
+#define ID_ANTIALIASING_BOX5            32852
+#define ID_ANTIALIASING_HAT3            32853
+#define ID_ANTIALIASING_HAT5            32854
+#define ID_ANTIALIASING_SINC3           32855
+#define ID_ANTIALIASING_SINC5           32856
+#define ID_ANTIALIASING_GAUSSIAN3       32857
+#define ID_ANTIALIASING_GAUSSIAN5       32858
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        154
-#define _APS_NEXT_COMMAND_VALUE         32849
+#define _APS_NEXT_COMMAND_VALUE         32859
 #define _APS_NEXT_CONTROL_VALUE         1056
 #define _APS_NEXT_SYMED_VALUE           107
 #endif
