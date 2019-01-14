@@ -102,6 +102,7 @@ private:
     Edge getNormalToVertex(Vec4& v, Mat4& t, bool calculated);
     COLORREF getColorAfterShading(Edge& ne, COLORREF objectColor, Mat4& t);
     COLORREF getBgValue(int x, int y, int width, int height);
+    void renderSceneToFile(int width, int height, CString& pngPath);
 
     // Overrides
     // ClassWizard generated virtual function overrides
@@ -247,13 +248,13 @@ public:
     afx_msg void OnUpdateAntiAliasingGaussian3(CCmdUI* pCmdUI);
     afx_msg void OnAntiAliasingGaussian5();
     afx_msg void OnUpdateAntiAliasingGaussian5(CCmdUI* pCmdUI);
+    afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
     afx_msg void OnAnimationRecordStart();
     afx_msg void OnAnimationRecordStop();
     afx_msg void OnAnimationPlay();
-    afx_msg void OnAnimationReset();
     afx_msg void OnAnimationFaster();
     afx_msg void OnAnimationSlower();
-    afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
+    afx_msg void OnAnimationToFile();
 };
 
 #ifndef _DEBUG // debug version in CGWorkView.cpp

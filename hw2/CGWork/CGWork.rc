@@ -141,7 +141,7 @@ BEGIN
     BEGIN
         MENUITEM "&Wireframe",                  ID_RENDER_WIREFRAME
         MENUITEM "&Screen",                     ID_RENDER_SCREEN
-        MENUITEM "&File",                       ID_RENDER_FILE
+        MENUITEM "&File...",                    ID_RENDER_FILE
         MENUITEM "Backface Culling",            ID_RENDER_BACKFACECULLING
         MENUITEM "Bonus &Backface Culling",     ID_RENDER_BONUSBACKFACECULLING
     END
@@ -175,9 +175,12 @@ BEGIN
     BEGIN
         MENUITEM "Record Star&t",               ID_RECORD_START
         MENUITEM "Record Sto&p",                ID_RECORD_STOP
+        MENUITEM SEPARATOR
         MENUITEM "&Play",                       ID_ANIMATION_PLAY
         MENUITEM "&Faster",                     ID_ANIMATION_FASTER
         MENUITEM "&Slower",                     ID_ANIMATION_SLOWER
+        MENUITEM SEPARATOR
+        MENUITEM "To File...",                  ID_ANIMATION_TOFILE
     END
     POPUP "&Help"
     BEGIN

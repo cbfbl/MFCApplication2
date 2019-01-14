@@ -133,13 +133,14 @@
 #define ID_ANIMATION_FASTER             32865
 #define ID_ANIMATION_SLOWER             32866
 #define ID_FILE_CLEAR                   32867
+#define ID_ANIMATION_TOFILE             32868
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        154
-#define _APS_NEXT_COMMAND_VALUE         32868
+#define _APS_NEXT_COMMAND_VALUE         32869
 #define _APS_NEXT_CONTROL_VALUE         1056
 #define _APS_NEXT_SYMED_VALUE           107
 #endif

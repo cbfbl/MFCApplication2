@@ -141,6 +141,7 @@ ON_COMMAND(ID_RECORD_STOP, OnAnimationRecordStop)
 ON_COMMAND(ID_ANIMATION_PLAY, OnAnimationPlay)
 ON_COMMAND(ID_ANIMATION_FASTER, OnAnimationFaster)
 ON_COMMAND(ID_ANIMATION_SLOWER, OnAnimationSlower)
+ON_COMMAND(ID_ANIMATION_TOFILE, OnAnimationToFile)
 //}}AFX_MSG_MAP
 ON_WM_TIMER()
 ON_WM_KEYUP()
@@ -1060,6 +1061,74 @@ COLORREF CCGWorkView::getBgValue(int x, int y, int width, int height)
     }
 }
 
+void CCGWorkView::renderSceneToFile(int width, int height, CString& pngPath)
+{
+    CStringA pngPathA = pngPath;
+    PngWrapper png(pngPathA, width, height);
+    png.InitWritePng();
+    int bg = SET_RGB(GetRValue(backgroundColor), GetGValue(backgroundColor), GetBValue(backgroundColor));
+    for (int x = 0; x < width; x++) {
+        for (int y = 0; y < height; y++) {
+            png.SetValue(x, y, bg);
+        }
+    }
+    vector<vector<COLORREF>> cbufferFiltered(width);
+    vector<vector<COLORREF>>* cbufferToUse;
+    if (antiAliasing != ID_ANTIALIASING_NONE) {
+        AliasFilter* filter;
+        switch (antiAliasing) {
+        case ID_ANTIALIASING_SINC3:
+            filter = &filterSinc3;
+            break;
+        case ID_ANTIALIASING_SINC5:
+            filter = &filterSinc5;
+            break;
+        case ID_ANTIALIASING_BOX3:
+            filter = &filterBox3;
+            break;
+        case ID_ANTIALIASING_BOX5:
+            filter = &filterBox5;
+            break;
+        case ID_ANTIALIASING_HAT3:
+            filter = &filterHat3;
+            break;
+        case ID_ANTIALIASING_HAT5:
+            filter = &filterHat5;
+            break;
+        case ID_ANTIALIASING_GAUSSIAN3:
+            filter = &filterGaussian3;
+            break;
+        case ID_ANTIALIASING_GAUSSIAN5:
+            filter = &filterGaussian5;
+            break;
+        }
+        RenderScene(width * filter->size, height * filter->size);
+        for (size_t i = 0; i < width; i++) {
+            cbufferFiltered[i] = vector<COLORREF>(height);
+            for (size_t j = 0; j < height; j++) {
+                cbufferFiltered[i][j] = filter->applyFilter(cbuffer, i * filter->size + filter->size2, j * filter->size + filter->size2);
+            }
+        }
+        cbufferToUse = &cbufferFiltered;
+    } else {
+        RenderScene(width, height);
+        cbufferToUse = &cbuffer;
+    }
+
+    for (size_t i = 0; i < width; i++) {
+        for (size_t j = 0; j < height; j++) {
+            if ((*cbufferToUse)[i][j] != backgroundColor) {
+                COLORREF c = (*cbufferToUse)[i][j];
+                png.SetValue(i, j, SET_RGB(GetRValue(c), GetGValue(c), GetBValue(c)));
+            } else if (!bgbuffer.empty()) {
+                COLORREF c = getBgValue(i, j, width, height);
+                png.SetValue(i, j, SET_RGB(GetRValue(c), GetGValue(c), GetBValue(c)));
+            }
+        }
+    }
+    png.WritePng();
+}
+
 /////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////
@@ -1606,6 +1675,8 @@ void CCGWorkView::OnUpdateRenderScreen(CCmdUI* pCmdUI)
 void CCGWorkView::OnRenderScreen()
 {
     renderScreen = true;
+    cullBackfaces = true;
+    bonusBackfaceCulling = false;
     Invalidate();
 }
 
@@ -1622,70 +1693,32 @@ void CCGWorkView::OnRenderFile()
         int height = dialog.getHeight();
         CFileDialog fileDialog(FALSE, _T("png"), _T("*.png"), OFN_OVERWRITEPROMPT, _T ("PNG (*.png)|*.png|All Files (*.*)|*.*||"));
         if (fileDialog.DoModal() == IDOK) {
-            CStringA pngPath = CStringA(fileDialog.GetPathName());
-            PngWrapper png(pngPath, width, height);
-            png.InitWritePng();
-            int bg = SET_RGB(GetRValue(backgroundColor), GetGValue(backgroundColor), GetBValue(backgroundColor));
-            for (int x = 0; x < width; x++) {
-                for (int y = 0; y < height; y++) {
-                    png.SetValue(x, y, bg);
-                }
-            }
-            vector<vector<COLORREF>> cbufferFiltered(width);
-            vector<vector<COLORREF>>* cbufferToUse;
-            if (antiAliasing != ID_ANTIALIASING_NONE) {
-                AliasFilter* filter;
-                switch (antiAliasing) {
-                case ID_ANTIALIASING_SINC3:
-                    filter = &filterSinc3;
-                    break;
-                case ID_ANTIALIASING_SINC5:
-                    filter = &filterSinc5;
-                    break;
-                case ID_ANTIALIASING_BOX3:
-                    filter = &filterBox3;
-                    break;
-                case ID_ANTIALIASING_BOX5:
-                    filter = &filterBox5;
-                    break;
-                case ID_ANTIALIASING_HAT3:
-                    filter = &filterHat3;
-                    break;
-                case ID_ANTIALIASING_HAT5:
-                    filter = &filterHat5;
-                    break;
-                case ID_ANTIALIASING_GAUSSIAN3:
-                    filter = &filterGaussian3;
-                    break;
-                case ID_ANTIALIASING_GAUSSIAN5:
-                    filter = &filterGaussian5;
-                    break;
-                }
-                RenderScene(width * filter->size, height * filter->size);
-                for (size_t i = 0; i < width; i++) {
-                    cbufferFiltered[i] = vector<COLORREF>(height);
-                    for (size_t j = 0; j < height; j++) {
-                        cbufferFiltered[i][j] = filter->applyFilter(cbuffer, i * filter->size + filter->size2, j * filter->size + filter->size2);
-                    }
-                }
-                cbufferToUse = &cbufferFiltered;
+            CString pngPath = fileDialog.GetPathName();
+            if (!animationIsPlaying) {
+                renderSceneToFile(width, height, pngPath);
             } else {
-                RenderScene(width, height);
-                cbufferToUse = &cbuffer;
-            }
-
-            for (size_t i = 0; i < width; i++) {
-                for (size_t j = 0; j < height; j++) {
-                    if ((*cbufferToUse)[i][j] != backgroundColor) {
-                        COLORREF c = (*cbufferToUse)[i][j];
-                        png.SetValue(i, j, SET_RGB(GetRValue(c), GetGValue(c), GetBValue(c)));
-                    } else if (!bgbuffer.empty()) {
-                        COLORREF c = getBgValue(i, j, width, height);
-                        png.SetValue(i, j, SET_RGB(GetRValue(c), GetGValue(c), GetBValue(c)));
+                pngPath = pngPath.Left(pngPath.GetLength() - 4);
+                CString framePngPath;
+                int i = 0;
+                while (1) {
+                    framePngPath = pngPath;
+                    framePngPath.AppendFormat(_T("_%03d.png"), i++);
+                    if (animationInterpolVar == animationFramesBetweenKeyFrames - 1) {
+                        animationCurrentKeyFrame++;
+                        animationInterpolVar = 0;
+                        if (animationCurrentKeyFrame == models[0].animationKeyFrames.size() - 1) {
+                            STATUS_BAR_TEXT(_T("Animation saved"));
+                            animationIsPlaying = false;
+                            break;
+                        } else {
+                            renderSceneToFile(width, height, framePngPath);
+                        }
+                    } else {
+                        animationInterpolVar++;
+                        renderSceneToFile(width, height, framePngPath);
                     }
                 }
             }
-            png.WritePng();
         }
     }
 }
@@ -1877,6 +1910,15 @@ void CCGWorkView::OnAntiAliasingGaussian5()
     Invalidate();
 }
 
+void CCGWorkView::OnLButtonUp(UINT nFlags, CPoint point)
+{
+    if (animationIsRecording) {
+        for (GraphicModel& model : models) {
+            model.addCurrentKeyFrame();
+        }
+    }
+    CView::OnLButtonUp(nFlags, point);
+}
 void CCGWorkView::OnAnimationRecordStart()
 {
     STATUS_BAR_TEXT(_T("Recording animation key-frames"));
@@ -1925,13 +1967,10 @@ void CCGWorkView::OnAnimationSlower()
 {
     animationFramesBetweenKeyFrames += ANIMATION_FRAMES_STEP;
 }
-
-void CCGWorkView::OnLButtonUp(UINT nFlags, CPoint point)
+void CCGWorkView::OnAnimationToFile()
 {
-    if (animationIsRecording) {
-        for (GraphicModel& model : models) {
-            model.addCurrentKeyFrame();
-        }
-    }
-    CView::OnLButtonUp(nFlags, point);
+    animationIsPlaying = true;
+    animationCurrentKeyFrame = 0;
+    animationInterpolVar = 0;
+    OnRenderFile();
 }
