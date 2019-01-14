@@ -9,52 +9,50 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-
-#include "gl\gl.h"    // Include the standard CGWork  headers
-#include "gl\glu.h"   // Add the utility library
+#include "gl\gl.h" // Include the standard CGWork  headers
+#include "gl\glu.h" // Add the utility library
 
 #include "Mat4.h"
 #include "iritSkel.h"
 
 #include "Light.h"
-#include <vector>
 #include <algorithm>
+#include <vector>
+#include <tuple>
 using std::vector;
-#include "PngWrapper.h"
-#include "GraphicModel.h"
+using std::tuple;
 #include "AliasFilter.h"
+#include "GraphicModel.h"
+#include "PngWrapper.h"
 
-
-class CCGWorkView : public CView
-{
+class CCGWorkView : public CView {
 protected: // create from serialization only
-	CCGWorkView();
-	DECLARE_DYNCREATE(CCGWorkView)
+    CCGWorkView();
+    DECLARE_DYNCREATE(CCGWorkView)
 
-// Attributes
+    // Attributes
 public:
-	CCGWorkDoc* GetDocument();
+    CCGWorkDoc* GetDocument();
 
-// Operations
+    // Operations
 public:
-
 private:
-	int m_nAxis;				// Axis of Action, X, Y, Z or XY
-	int m_nAction;				// Rotate, Translate, Scale
-	int m_nView;				// Orthographic, perspective
-	bool m_bIsPerspective;			// is the view perspective
-	
-	CString m_strItdFileName;		// file name of IRIT data
+    int m_nAxis; // Axis of Action, X, Y, Z or XY
+    int m_nAction; // Rotate, Translate, Scale
+    int m_nView; // Orthographic, perspective
+    bool m_bIsPerspective; // is the view perspective
 
-	int m_nLightShading;			// shading: Flat, Gouraud.
+    CString m_strItdFileName; // file name of IRIT data
 
-	double m_lMaterialAmbient;		// The Ambient in the scene
-	double m_lMaterialDiffuse;		// The Diffuse in the scene
-	double m_lMaterialSpecular;		// The Specular in the scene
-	int m_nMaterialCosineFactor;		// The cosine factor for the specular
+    int m_nLightShading; // shading: Flat, Gouraud.
 
-	LightParams m_lights[MAX_LIGHT];	//configurable lights array
-	LightParams m_ambientLight;		//ambient light (only RGB is used)
+    double m_lMaterialAmbient; // The Ambient in the scene
+    double m_lMaterialDiffuse; // The Diffuse in the scene
+    double m_lMaterialSpecular; // The Specular in the scene
+    int m_nMaterialCosineFactor; // The cosine factor for the specular
+
+    LightParams m_lights[MAX_LIGHT]; //configurable lights array
+    LightParams m_ambientLight; //ambient light (only RGB is used)
 
     bool drawBoundingBox;
     bool drawSilhouette;
@@ -68,10 +66,10 @@ private:
     COLORREF backgroundColor;
     COLORREF silhouetteColor;
     int mouseSensitivity;
-	bool object;
+    bool object;
     int modelIdx;
-	double d;
-	double a;
+    double d;
+    double a;
     bool invertNormals;
     bool renderScreen;
     bool cullBackfaces;
@@ -80,7 +78,7 @@ private:
     bool bonusBackfaceCulling;
     bool enableFog;
     COLORREF fogColor;
-	vector<vector<double>> zbuffer;
+    vector<vector<double>> zbuffer;
     vector<vector<COLORREF>> cbuffer;
     vector<vector<COLORREF>> bgbuffer;
 
@@ -90,6 +88,13 @@ private:
     AliasFilter filterHat3, filterHat5;
     AliasFilter filterGaussian3, filterGaussian5;
 
+    bool animationIsRecording;
+    bool animationIsPlaying;
+    int animationCurrentKeyFrame;
+    int animationInterpolVar;
+    int animationFramesBetweenKeyFrames;
+    const int ANIMATION_FRAMES_STEP = 5;
+
     void Transform(CPoint diff);
     void Transform(GraphicModel& model, double dx, double dy);
     void drawLine(Vec4& start, Vec4& end, COLORREF color);
@@ -98,76 +103,77 @@ private:
     COLORREF getColorAfterShading(Edge& ne, COLORREF objectColor, Mat4& t);
     COLORREF getBgValue(int x, int y, int width, int height);
 
-// Overrides
-	// ClassWizard generated virtual function overrides
-	//{{AFX_VIRTUAL(CCGWorkView)
-	public:
-	virtual void OnDraw(CDC* pDC);  // overridden to draw this view
-	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
-	protected:
-	//}}AFX_VIRTUAL
-
-// Implementation
+    // Overrides
+    // ClassWizard generated virtual function overrides
+    //{{AFX_VIRTUAL(CCGWorkView)
 public:
-	virtual ~CCGWorkView();
+    virtual void OnDraw(CDC* pDC); // overridden to draw this view
+    virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
+
+protected:
+    //}}AFX_VIRTUAL
+
+    // Implementation
+public:
+    virtual ~CCGWorkView();
 #ifdef _DEBUG
-	virtual void AssertValid() const;
-	virtual void Dump(CDumpContext& dc) const;
+    virtual void AssertValid() const;
+    virtual void Dump(CDumpContext& dc) const;
 #endif
 
 protected:
-	BOOL InitializeCGWork();
-	BOOL SetupViewingFrustum(void);
-	BOOL SetupViewingOrthoConstAspect(void);
+    BOOL InitializeCGWork();
+    BOOL SetupViewingFrustum(void);
+    BOOL SetupViewingOrthoConstAspect(void);
 
-	virtual void RenderScene(int width, int height);
+    virtual void RenderScene(int width, int height);
 
+    HGLRC m_hRC; // holds the Rendering Context
+    CDC* m_pDC; // holds the Device Context
+    int m_WindowWidth; // hold the windows width
+    int m_WindowHeight; // hold the windows height
+    double m_AspectRatio; // hold the fixed Aspect Ration
 
-	HGLRC    m_hRC;			// holds the Rendering Context
-	CDC*     m_pDC;			// holds the Device Context
-	int m_WindowWidth;		// hold the windows width
-	int m_WindowHeight;		// hold the windows height
-	double m_AspectRatio;		// hold the fixed Aspect Ration
+    HBITMAP m_pDbBitMap;
+    CDC* m_pDbDC;
 
-	HBITMAP m_pDbBitMap;
-	CDC* m_pDbDC;
-
-// Generated message map functions
+    // Generated message map functions
 protected:
-	//{{AFX_MSG(CCGWorkView)
-	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
-	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
-	afx_msg void OnDestroy();
-	afx_msg void OnSize(UINT nType, int cx, int cy);
-	afx_msg void OnFileLoad();
-	afx_msg void OnViewOrthographic();
-	afx_msg void OnUpdateViewOrthographic(CCmdUI* pCmdUI);
-	afx_msg void OnViewPerspective();
-	afx_msg void OnUpdateViewPerspective(CCmdUI* pCmdUI);
-	afx_msg void OnActionRotate();
-	afx_msg void OnUpdateActionRotate(CCmdUI* pCmdUI);
-	afx_msg void OnActionScale();
-	afx_msg void OnUpdateActionScale(CCmdUI* pCmdUI);
-	afx_msg void OnActionTranslate();
-	afx_msg void OnUpdateActionTranslate(CCmdUI* pCmdUI);
-	afx_msg void OnAxisX();
-	afx_msg void OnUpdateAxisX(CCmdUI* pCmdUI);
-	afx_msg void OnAxisY();
-	afx_msg void OnUpdateAxisY(CCmdUI* pCmdUI);
-	afx_msg void OnAxisZ();
-	afx_msg void OnUpdateAxisZ(CCmdUI* pCmdUI);
-	afx_msg void OnLightShadingFlat();
-	afx_msg void OnUpdateLightShadingFlat(CCmdUI* pCmdUI);
-	afx_msg void OnLightShadingGouraud();
-	afx_msg void OnUpdateLightShadingGouraud(CCmdUI* pCmdUI);
-	afx_msg void OnLightShadingPhong();
-	afx_msg void OnUpdateLightShadingPhong(CCmdUI* pCmdUI);
-	afx_msg void OnLightConstants();
-	afx_msg void OnMaterialConstants();
-	//}}AFX_MSG
-	DECLARE_MESSAGE_MAP()
+    //{{AFX_MSG(CCGWorkView)
+    afx_msg BOOL OnEraseBkgnd(CDC* pDC);
+    afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
+    afx_msg void OnDestroy();
+    afx_msg void OnSize(UINT nType, int cx, int cy);
+    afx_msg void OnFileLoad();
+    afx_msg void OnFileClear();
+    afx_msg void OnViewOrthographic();
+    afx_msg void OnUpdateViewOrthographic(CCmdUI* pCmdUI);
+    afx_msg void OnViewPerspective();
+    afx_msg void OnUpdateViewPerspective(CCmdUI* pCmdUI);
+    afx_msg void OnActionRotate();
+    afx_msg void OnUpdateActionRotate(CCmdUI* pCmdUI);
+    afx_msg void OnActionScale();
+    afx_msg void OnUpdateActionScale(CCmdUI* pCmdUI);
+    afx_msg void OnActionTranslate();
+    afx_msg void OnUpdateActionTranslate(CCmdUI* pCmdUI);
+    afx_msg void OnAxisX();
+    afx_msg void OnUpdateAxisX(CCmdUI* pCmdUI);
+    afx_msg void OnAxisY();
+    afx_msg void OnUpdateAxisY(CCmdUI* pCmdUI);
+    afx_msg void OnAxisZ();
+    afx_msg void OnUpdateAxisZ(CCmdUI* pCmdUI);
+    afx_msg void OnLightShadingFlat();
+    afx_msg void OnUpdateLightShadingFlat(CCmdUI* pCmdUI);
+    afx_msg void OnLightShadingGouraud();
+    afx_msg void OnUpdateLightShadingGouraud(CCmdUI* pCmdUI);
+    afx_msg void OnLightShadingPhong();
+    afx_msg void OnUpdateLightShadingPhong(CCmdUI* pCmdUI);
+    afx_msg void OnLightConstants();
+    afx_msg void OnMaterialConstants();
+    //}}AFX_MSG
+    DECLARE_MESSAGE_MAP()
 public:
-	afx_msg void OnTimer(UINT_PTR nIDEvent);
+    afx_msg void OnTimer(UINT_PTR nIDEvent);
     afx_msg void OnKeyUp(UINT nChar, UINT nRepCnt, UINT nFlags);
     afx_msg void OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags);
     afx_msg void OnMouseMove(UINT nFlags, CPoint point);
@@ -211,18 +217,18 @@ public:
     afx_msg void OnOptionsSilhouettecolor();
     afx_msg void OnOptionsNormalscolor();
     afx_msg void OnOptionsBackgroundcolor();
-	afx_msg void OnUpdateActionView(CCmdUI *pCmdUI);
-	afx_msg void OnUpdateActionObject(CCmdUI *pCmdUI);
-	afx_msg void OnActionView();
-	afx_msg void OnActionObject();
+    afx_msg void OnUpdateActionView(CCmdUI* pCmdUI);
+    afx_msg void OnUpdateActionObject(CCmdUI* pCmdUI);
+    afx_msg void OnActionView();
+    afx_msg void OnActionObject();
     afx_msg void OnActionSelectedobject();
     afx_msg void OnOptionsFineness();
-	afx_msg void OnOptionsPerspectivecontrol32824();
-	afx_msg void OnUpdateUseCalculatedNormals(CCmdUI *pCmdUI);
-	afx_msg void OnUseCalculatedNormals();
-	afx_msg void OnFogEnable();
-    afx_msg void OnUpdateFogEnable(CCmdUI *pCmdUI);
-	afx_msg void OnFogColor();
+    afx_msg void OnOptionsPerspectivecontrol32824();
+    afx_msg void OnUpdateUseCalculatedNormals(CCmdUI* pCmdUI);
+    afx_msg void OnUseCalculatedNormals();
+    afx_msg void OnFogEnable();
+    afx_msg void OnUpdateFogEnable(CCmdUI* pCmdUI);
+    afx_msg void OnFogColor();
     afx_msg void OnAntiAliasingNone();
     afx_msg void OnUpdateAntiAliasingNone(CCmdUI* pCmdUI);
     afx_msg void OnAntiAliasingSinc3();
@@ -241,11 +247,20 @@ public:
     afx_msg void OnUpdateAntiAliasingGaussian3(CCmdUI* pCmdUI);
     afx_msg void OnAntiAliasingGaussian5();
     afx_msg void OnUpdateAntiAliasingGaussian5(CCmdUI* pCmdUI);
+    afx_msg void OnAnimationRecordStart();
+    afx_msg void OnAnimationRecordStop();
+    afx_msg void OnAnimationPlay();
+    afx_msg void OnAnimationReset();
+    afx_msg void OnAnimationFaster();
+    afx_msg void OnAnimationSlower();
+    afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
 };
 
-#ifndef _DEBUG  // debug version in CGWorkView.cpp
+#ifndef _DEBUG // debug version in CGWorkView.cpp
 inline CCGWorkDoc* CCGWorkView::GetDocument()
-   { return (CCGWorkDoc*)m_pDocument; }
+{
+    return (CCGWorkDoc*)m_pDocument;
+}
 #endif
 
 /////////////////////////////////////////////////////////////////////////////

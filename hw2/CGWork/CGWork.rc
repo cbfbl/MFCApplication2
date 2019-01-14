@@ -72,6 +72,7 @@ BEGIN
     POPUP "&File"
     BEGIN
         MENUITEM "&Load",                       ID_FILE_LOAD
+        MENUITEM "&Clear",                      ID_FILE_CLEAR
         MENUITEM "E&xit",                       ID_APP_EXIT
     END
     POPUP "&View"
@@ -116,14 +117,13 @@ BEGIN
     END
     POPUP "&Options"
     BEGIN
-        MENUITEM "Perspective Control...",      ID_OPTIONS_PERSPECTIVECONTROL
         MENUITEM "Mouse Sensitivity...",        ID_OPTIONS_MOUSESENSITIVITY
-        MENUITEM "Wireframe Color...",          ID_OPTIONS_WIREFRAMECOLOR
-        MENUITEM "Silhouette Color...",         ID_OPTIONS_SILHOUETTE_COLOR
-        MENUITEM "Normals Color...",            ID_OPTIONS_NORMALSCOLOR
-        MENUITEM "Background Color...",         ID_OPTIONS_BACKGROUNDCOLOR
+        MENUITEM "&Wireframe Color...",         ID_OPTIONS_WIREFRAMECOLOR
+        MENUITEM "&Silhouette Color...",        ID_OPTIONS_SILHOUETTE_COLOR
+        MENUITEM "&Normals Color...",           ID_OPTIONS_NORMALSCOLOR
+        MENUITEM "&Background Color...",        ID_OPTIONS_BACKGROUNDCOLOR
         MENUITEM "FineNess...",                 ID_OPTIONS_FINENESS
-        MENUITEM "Perspective control",         ID_OPTIONS_PERSPECTIVECONTROL32824
+        MENUITEM "Perspective Control...",      ID_OPTIONS_PERSPECTIVECONTROL32824
         MENUITEM "Use Calculated Normals",      ID_OPTIONS_USECALCULATEDNORMALS
     END
     POPUP "&Light"
@@ -137,26 +137,26 @@ BEGIN
         MENUITEM "&Parameters...",              ID_LIGHT_CONSTANTS
         MENUITEM "Material...",                 ID_LIGHT_MATERIAL
     END
-    POPUP "Render"
+    POPUP "&Render"
     BEGIN
-        MENUITEM "Wireframe",                   ID_RENDER_WIREFRAME
-        MENUITEM "Screen",                      ID_RENDER_SCREEN
-        MENUITEM "File",                        ID_RENDER_FILE
+        MENUITEM "&Wireframe",                  ID_RENDER_WIREFRAME
+        MENUITEM "&Screen",                     ID_RENDER_SCREEN
+        MENUITEM "&File",                       ID_RENDER_FILE
         MENUITEM "Backface Culling",            ID_RENDER_BACKFACECULLING
-        MENUITEM "Bonus Backface Culling",      ID_RENDER_BONUSBACKFACECULLING
+        MENUITEM "Bonus &Backface Culling",     ID_RENDER_BONUSBACKFACECULLING
     END
     POPUP "&Fog"
     BEGIN
         MENUITEM "&Enable",                     ID_FOG_ENABLE
         MENUITEM "&Color...",                   ID_FOG_COLOR
     END
-    POPUP "Background"
+    POPUP "&Background"
     BEGIN
-        MENUITEM "Load...",                     ID_BG_LOAD
-        MENUITEM "Clear",                       ID_BG_CLEAR
+        MENUITEM "&Load...",                    ID_BG_LOAD
+        MENUITEM "&Clear",                      ID_BG_CLEAR
         MENUITEM SEPARATOR
-        MENUITEM "Stretch",                     ID_BG_STRETCH
-        MENUITEM "Repeat",                      ID_BG_REPEAT
+        MENUITEM "&Stretch",                    ID_BG_STRETCH
+        MENUITEM "&Repeat",                     ID_BG_REPEAT
     END
     POPUP "&Anti Aliasing"
     BEGIN
@@ -170,6 +170,14 @@ BEGIN
         MENUITEM "Gaussian5",                   ID_ANTIALIASING_GAUSSIAN5
         MENUITEM SEPARATOR
         MENUITEM "None",                        ID_ANTIALIASING_NONE
+    END
+    POPUP "Ani&mation"
+    BEGIN
+        MENUITEM "Record Star&t",               ID_RECORD_START
+        MENUITEM "Record Sto&p",                ID_RECORD_STOP
+        MENUITEM "&Play",                       ID_ANIMATION_PLAY
+        MENUITEM "&Faster",                     ID_ANIMATION_FASTER
+        MENUITEM "&Slower",                     ID_ANIMATION_SLOWER
     END
     POPUP "&Help"
     BEGIN

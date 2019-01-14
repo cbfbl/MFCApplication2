@@ -35,3 +35,9 @@ GraphicModel::GraphicModel(CString& name, vector<GraphicObject> graphicObjects)
 GraphicModel::~GraphicModel()
 {
 }
+
+void GraphicModel::addCurrentKeyFrame()
+{
+    animationKeyFrames.push_back(tuple<double, double, double, double, double, double, double, double, double>(
+                thetaX, thetaY, thetaZ, scaleX, scaleY, scaleZ, translateX, translateY, translateZ));
+}

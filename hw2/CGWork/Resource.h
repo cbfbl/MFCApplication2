@@ -124,13 +124,22 @@
 #define ID_ANTIALIASING_SINC5           32856
 #define ID_ANTIALIASING_GAUSSIAN3       32857
 #define ID_ANTIALIASING_GAUSSIAN5       32858
+#define ID_ANIMATION_RECORD             32859
+#define ID_RECORD_START                 32860
+#define ID_RECORD_STOP                  32861
+#define ID_ANIMATION_PLAY               32862
+#define ID_ANIMATION_HALTANDRESET       32863
+#define ID_ANIMATION_RESET              32864
+#define ID_ANIMATION_FASTER             32865
+#define ID_ANIMATION_SLOWER             32866
+#define ID_FILE_CLEAR                   32867
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        154
-#define _APS_NEXT_COMMAND_VALUE         32859
+#define _APS_NEXT_COMMAND_VALUE         32868
 #define _APS_NEXT_CONTROL_VALUE         1056
 #define _APS_NEXT_SYMED_VALUE           107
 #endif

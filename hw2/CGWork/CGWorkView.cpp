@@ -43,6 +43,7 @@ ON_WM_CREATE()
 ON_WM_DESTROY()
 ON_WM_SIZE()
 ON_COMMAND(ID_FILE_LOAD, OnFileLoad)
+ON_COMMAND(ID_FILE_CLEAR, OnFileClear)
 ON_COMMAND(ID_VIEW_ORTHOGRAPHIC, OnViewOrthographic)
 ON_UPDATE_COMMAND_UI(ID_VIEW_ORTHOGRAPHIC, OnUpdateViewOrthographic)
 ON_COMMAND(ID_VIEW_PERSPECTIVE, OnViewPerspective)
@@ -135,11 +136,17 @@ ON_COMMAND(ID_ANTIALIASING_GAUSSIAN3, OnAntiAliasingGaussian3)
 ON_UPDATE_COMMAND_UI(ID_ANTIALIASING_GAUSSIAN3, OnUpdateAntiAliasingGaussian3)
 ON_COMMAND(ID_ANTIALIASING_GAUSSIAN5, OnAntiAliasingGaussian5)
 ON_UPDATE_COMMAND_UI(ID_ANTIALIASING_GAUSSIAN5, OnUpdateAntiAliasingGaussian5)
+ON_COMMAND(ID_RECORD_START, OnAnimationRecordStart)
+ON_COMMAND(ID_RECORD_STOP, OnAnimationRecordStop)
+ON_COMMAND(ID_ANIMATION_PLAY, OnAnimationPlay)
+ON_COMMAND(ID_ANIMATION_FASTER, OnAnimationFaster)
+ON_COMMAND(ID_ANIMATION_SLOWER, OnAnimationSlower)
 //}}AFX_MSG_MAP
 ON_WM_TIMER()
 ON_WM_KEYUP()
 ON_WM_KEYDOWN()
 ON_WM_MOUSEMOVE()
+ON_WM_LBUTTONUP()
 END_MESSAGE_MAP()
 
 // A patch to fix GLaux disappearance from VS2005 to VS2008
@@ -200,53 +207,59 @@ CCGWorkView::CCGWorkView()
 
     antiAliasing = ID_ANTIALIASING_NONE;
     filterSinc3 = AliasFilter(3, {
-        { 2, 3, 2 },
-        { 3, 4, 3 },
-        { 2, 3, 2 },
-    });
+                                     { 2, 3, 2 },
+                                     { 3, 4, 3 },
+                                     { 2, 3, 2 },
+                                 });
     filterSinc5 = AliasFilter(5, {
-        { -2, -1, 0, -1, -2 },
-        { -1, 4, 6, 4, -1 },
-        { 0, 6, 9, 6, 0 },
-        { -2, -1, 0, -1, -2 },
-        { -1, 4, 6, 4, -1 },
-    });
+                                     { -2, -1, 0, -1, -2 },
+                                     { -1, 4, 6, 4, -1 },
+                                     { 0, 6, 9, 6, 0 },
+                                     { -2, -1, 0, -1, -2 },
+                                     { -1, 4, 6, 4, -1 },
+                                 });
     filterBox3 = AliasFilter(3, {
-        { 1, 1, 1 },
-        { 1, 1, 1 },
-        { 1, 1, 1 },
-    });
+                                    { 1, 1, 1 },
+                                    { 1, 1, 1 },
+                                    { 1, 1, 1 },
+                                });
     filterBox5 = AliasFilter(5, {
-        { 1, 1, 1, 1, 1 },
-        { 1, 1, 1, 1, 1 },
-        { 1, 1, 1, 1, 1 },
-        { 1, 1, 1, 1, 1 },
-        { 1, 1, 1, 1, 1 },
-    });
+                                    { 1, 1, 1, 1, 1 },
+                                    { 1, 1, 1, 1, 1 },
+                                    { 1, 1, 1, 1, 1 },
+                                    { 1, 1, 1, 1, 1 },
+                                    { 1, 1, 1, 1, 1 },
+                                });
     filterHat3 = AliasFilter(3, {
-        { 1, 2, 1 },
-        { 2, 4, 2 },
-        { 1, 2, 1 },
-    });
+                                    { 1, 2, 1 },
+                                    { 2, 4, 2 },
+                                    { 1, 2, 1 },
+                                });
     filterHat5 = AliasFilter(5, {
-        { 1, 2, 3, 2, 1 },
-        { 2, 4, 6, 4, 2 },
-        { 3, 6, 9, 6, 3 },
-        { 2, 4, 6, 4, 2 },
-        { 1, 2, 3, 2, 1 },
-    });
+                                    { 1, 2, 3, 2, 1 },
+                                    { 2, 4, 6, 4, 2 },
+                                    { 3, 6, 9, 6, 3 },
+                                    { 2, 4, 6, 4, 2 },
+                                    { 1, 2, 3, 2, 1 },
+                                });
     filterGaussian3 = AliasFilter(3, {
-        { 1, 2, 1 },
-        { 2, 5, 2 },
-        { 1, 2, 1 },
-    });
+                                         { 1, 2, 1 },
+                                         { 2, 5, 2 },
+                                         { 1, 2, 1 },
+                                     });
     filterGaussian5 = AliasFilter(5, {
-        { 1, 1, 1, 1, 1 },
-        { 1, 2, 4, 2, 1 },
-        { 1, 4, 10, 4, 1 },
-        { 1, 2, 4, 2, 1 },
-        { 1, 1, 1, 1, 1 },
-    });
+                                         { 1, 1, 1, 1, 1 },
+                                         { 1, 2, 4, 2, 1 },
+                                         { 1, 4, 10, 4, 1 },
+                                         { 1, 2, 4, 2, 1 },
+                                         { 1, 1, 1, 1, 1 },
+                                     });
+
+    animationIsRecording = false;
+    animationIsPlaying = false;
+    animationCurrentKeyFrame = 0;
+    animationInterpolVar = 0;
+    animationFramesBetweenKeyFrames = 6 * ANIMATION_FRAMES_STEP;
 }
 
 CCGWorkView::~CCGWorkView()
@@ -315,7 +328,6 @@ BOOL CCGWorkView::InitializeCGWork()
     GetClientRect(&r);
     m_pDbDC = new CDC();
     m_pDbDC->CreateCompatibleDC(m_pDC);
-    SetTimer(1, 1, NULL);
     m_pDbBitMap = CreateCompatibleBitmap(m_pDC->m_hDC, r.right, r.bottom);
     m_pDbDC->SelectObject(m_pDbBitMap);
     return TRUE;
@@ -487,8 +499,26 @@ void CCGWorkView::RenderScene(int width, int height)
         }
     }
 
+    double a1mT = double((animationFramesBetweenKeyFrames - animationInterpolVar)) / animationFramesBetweenKeyFrames;
+    double aT = double(animationInterpolVar) / animationFramesBetweenKeyFrames;
+
     for (size_t i = 0; i < models.size(); i++) {
-        GraphicModel model = models[i];
+        GraphicModel& model = models[i];
+
+        if (animationIsPlaying) {
+            tuple<double, double, double, double, double, double, double, double, double>& keyFrame0 = model.animationKeyFrames[animationCurrentKeyFrame];
+            tuple<double, double, double, double, double, double, double, double, double>& keyFrame1 = model.animationKeyFrames[animationCurrentKeyFrame + 1];
+            model.thetaX = std::get<0>(keyFrame0) * a1mT + std::get<0>(keyFrame1) * aT;
+            model.thetaY = std::get<1>(keyFrame0) * a1mT + std::get<1>(keyFrame1) * aT;
+            model.thetaZ = std::get<2>(keyFrame0) * a1mT + std::get<2>(keyFrame1) * aT;
+            model.scaleX = std::get<3>(keyFrame0) * a1mT + std::get<3>(keyFrame1) * aT;
+            model.scaleY = std::get<4>(keyFrame0) * a1mT + std::get<4>(keyFrame1) * aT;
+            model.scaleZ = std::get<5>(keyFrame0) * a1mT + std::get<5>(keyFrame1) * aT;
+            model.translateX = std::get<6>(keyFrame0) * a1mT + std::get<6>(keyFrame1) * aT;
+            model.translateY = std::get<7>(keyFrame0) * a1mT + std::get<7>(keyFrame1) * aT;
+            model.translateZ = std::get<8>(keyFrame0) * a1mT + std::get<8>(keyFrame1) * aT;
+        }
+
         Mat4 rotateX = Mat4(
             Vec4(1, 0, 0, 0),
             Vec4(0, cos(model.thetaX), -sin(model.thetaX), 0),
@@ -544,10 +574,10 @@ void CCGWorkView::RenderScene(int width, int height)
             t = screen * perspective * translateZinit * translate * rotateX * rotateY * rotateZ * scale;
             tp = screen * translateZinit * translate * rotateX * rotateY * rotateZ * scale;
         }
-        for (GraphicObject o : model.objects) {
+        for (GraphicObject& o : model.objects) {
             COLORREF objectColor = model.useCustomWireframeColor ? model.wireframeColor : RGB(o.red, o.green, o.blue);
             COLORREF normalColor = useCustomNormalsColor ? normalsColor : RGB(o.red, o.green, o.blue);
-            for (GraphicPolygon p : o.polygons) {
+            for (GraphicPolygon& p : o.polygons) {
                 // Draw the normals of the polygon:
                 Edge ne;
                 switch (drawNormals) {
@@ -560,13 +590,13 @@ void CCGWorkView::RenderScene(int width, int height)
                     drawLine(ne.start, ne.end, normalColor);
                     break;
                 case ID_NORMAL_VERTICES_CALCULATED:
-                    for (Edge e : p.edges) {
+                    for (Edge& e : p.edges) {
                         ne = getNormalToVertex(e.start, t, true);
                         drawLine(ne.start, ne.end, normalColor);
                     }
                     break;
                 case ID_NORMAL_VERTICES_GIVEN:
-                    for (Edge e : p.edges) {
+                    for (Edge& e : p.edges) {
                         if (!(e.start.normalX == 0 && e.start.normalY == 0 && e.start.normalZ == 0)) {
                             ne = getNormalToVertex(e.start, t, false);
                             drawLine(ne.start, ne.end, normalColor);
@@ -578,7 +608,7 @@ void CCGWorkView::RenderScene(int width, int height)
                 }
                 // Draw the silhouette of the object:
                 if (drawSilhouette) {
-                    for (Edge e : p.edges) {
+                    for (Edge& e : p.edges) {
                         vector<int> hashStart;
                         hashStart.push_back((int)(e.start.x * HASH_PRECISION));
                         hashStart.push_back((int)(e.start.y * HASH_PRECISION));
@@ -591,11 +621,11 @@ void CCGWorkView::RenderScene(int width, int height)
                         vector<Vec4> polyNormalsAdjToEnd = vertexAdjPolygonNormals[hashEnd];
                         Vec4 polyNormal1, polyNormal2;
                         int pns = 0;
-                        for (Vec4 polyNormalStart : polyNormalsAdjToStart) {
+                        for (Vec4& polyNormalStart : polyNormalsAdjToStart) {
                             if (pns == 2) {
                                 break;
                             }
-                            for (Vec4 polyNormalEnd : polyNormalsAdjToEnd) {
+                            for (Vec4& polyNormalEnd : polyNormalsAdjToEnd) {
                                 if (polyNormalEnd == polyNormalStart) {
                                     if (pns == 0) {
                                         polyNormal1 = t * polyNormalStart;
@@ -637,7 +667,7 @@ void CCGWorkView::RenderScene(int width, int height)
             }
             // Draw the bounding box of the object:
             if (drawBoundingBox) {
-                for (Edge e : o.boundingBox) {
+                for (Edge& e : o.boundingBox) {
                     Vec4 start = t * e.start;
                     start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
                     Vec4 end = t * e.end;
@@ -647,14 +677,14 @@ void CCGWorkView::RenderScene(int width, int height)
             }
             // Draw the edges of the polygon in wireframe mode:
             if (!renderScreen) {
-                for (GraphicPolygon p : o.polygons) {
+                for (GraphicPolygon& p : o.polygons) {
                     if (bonusBackfaceCulling) {
                         Vec4 normal = t * p.normal;
                         if (normal.z < 0) {
                             continue;
                         }
                     }
-                    for (Edge e : p.edges) {
+                    for (Edge& e : p.edges) {
                         Vec4 start = t * e.start;
                         start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
                         Vec4 end = t * e.end;
@@ -663,7 +693,7 @@ void CCGWorkView::RenderScene(int width, int height)
                     }
                 }
             }
-            for (GraphicPolygon p : o.polygons) {
+            for (GraphicPolygon& p : o.polygons) {
                 COLORREF flatShadingColor;
                 if (m_nLightShading == ID_LIGHT_SHADING_FLAT) {
                     Edge ne = getNormalToPolygon(p, t, useCalculateNormals);
@@ -673,7 +703,7 @@ void CCGWorkView::RenderScene(int width, int height)
                 vector<Edge> projectedEdges;
                 size_t y_min = UINT_MAX;
                 size_t y_max = 0;
-                for (Edge e : p.edges) {
+                for (Edge& e : p.edges) {
                     Vec4 start = t * e.start;
                     start = Vec4(start.x / start.w, start.y / start.w, start.z / start.w, 1);
                     Vec4 end = t * e.end;
@@ -708,7 +738,7 @@ void CCGWorkView::RenderScene(int width, int height)
                 }
                 for (size_t y = y_min; y <= y_max; y++) {
                     vector<std::pair<double, Edge>> edge_intersections;
-                    for (Edge e : projectedEdges) {
+                    for (Edge& e : projectedEdges) {
                         if ((e.start.y <= y && y < e.end.y) || (e.end.y <= y && y < e.start.y)) {
                             if (e.end.x == e.start.x) {
                                 edge_intersections.push_back(std::pair<double, Edge>(e.start.x, e));
@@ -935,13 +965,13 @@ COLORREF CCGWorkView::getColorAfterShading(Edge& ne, COLORREF objectColor, Mat4&
     I[2] = Ia * (A * ambientColorB);
 
     int lightsCount = 0;
-    for (LightParams light : m_lights) {
+    for (LightParams& light : m_lights) {
         if (light.enabled) {
             lightsCount++;
         }
     }
 
-    for (LightParams light : m_lights) {
+    for (LightParams& light : m_lights) {
         if (light.enabled) {
             // Diffuse light:
             Vec4 N = (ne.end - ne.start);
@@ -1049,6 +1079,12 @@ void CCGWorkView::OnFileLoad()
 
         Invalidate(); // force a WM_PAINT for drawing.
     }
+}
+void CCGWorkView::OnFileClear()
+{
+    graphicObjects.clear();
+    models.clear();
+    Invalidate();
 }
 
 // VIEW HANDLERS ///////////////////////////////////////////
@@ -1233,10 +1269,6 @@ void CCGWorkView::OnMaterialConstants()
 
 void CCGWorkView::OnTimer(UINT_PTR nIDEvent)
 {
-    // TODO: Add your message handler code here and/or call default
-    //CView::OnTimer(nIDEvent);
-    //if (nIDEvent == 1)
-    //Invalidate();
 }
 
 void CCGWorkView::OnKeyUp(UINT nChar, UINT nRepCnt, UINT nFlags)
@@ -1763,7 +1795,6 @@ void CCGWorkView::OnFogEnable()
     Invalidate();
 }
 
-
 void CCGWorkView::OnUpdateAntiAliasingNone(CCmdUI* pCmdUI)
 {
     pCmdUI->SetCheck(antiAliasing == ID_ANTIALIASING_NONE);
@@ -1844,4 +1875,63 @@ void CCGWorkView::OnAntiAliasingGaussian5()
 {
     antiAliasing = ID_ANTIALIASING_GAUSSIAN5;
     Invalidate();
+}
+
+void CCGWorkView::OnAnimationRecordStart()
+{
+    STATUS_BAR_TEXT(_T("Recording animation key-frames"));
+    animationIsRecording = true;
+    for (GraphicModel& model : models) {
+        model.animationKeyFrames.clear();
+        model.addCurrentKeyFrame();
+    }
+}
+void CCGWorkView::OnAnimationRecordStop()
+{
+    STATUS_BAR_TEXT(_T("Playing animation"));
+    animationIsRecording = false;
+}
+void CCGWorkView::OnAnimationPlay()
+{
+    animationIsPlaying = true;
+    animationCurrentKeyFrame = 0;
+    animationInterpolVar = 0;
+    while (1) {
+        if (animationInterpolVar == animationFramesBetweenKeyFrames - 1) {
+            animationCurrentKeyFrame++;
+            animationInterpolVar = 0;
+            if (animationCurrentKeyFrame == models[0].animationKeyFrames.size() - 1) {
+                STATUS_BAR_TEXT(_T("Animation end"));
+                animationIsPlaying = false;
+                break;
+            } else {
+                Invalidate();
+                UpdateWindow();
+            }
+        } else {
+            animationInterpolVar++;
+            Invalidate();
+            UpdateWindow();
+        }
+    }
+}
+void CCGWorkView::OnAnimationFaster()
+{
+    if (animationFramesBetweenKeyFrames != ANIMATION_FRAMES_STEP) {
+        animationFramesBetweenKeyFrames -= ANIMATION_FRAMES_STEP;
+    }
+}
+void CCGWorkView::OnAnimationSlower()
+{
+    animationFramesBetweenKeyFrames += ANIMATION_FRAMES_STEP;
+}
+
+void CCGWorkView::OnLButtonUp(UINT nFlags, CPoint point)
+{
+    if (animationIsRecording) {
+        for (GraphicModel& model : models) {
+            model.addCurrentKeyFrame();
+        }
+    }
+    CView::OnLButtonUp(nFlags, point);
 }
