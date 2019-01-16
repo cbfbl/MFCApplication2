@@ -176,11 +176,14 @@ BEGIN
         MENUITEM "Record Star&t",               ID_RECORD_START
         MENUITEM "Record Sto&p",                ID_RECORD_STOP
         MENUITEM SEPARATOR
-        MENUITEM "&Play",                       ID_ANIMATION_PLAY
+        MENUITEM "P&lay",                       ID_ANIMATION_PLAY
         MENUITEM "&Faster",                     ID_ANIMATION_FASTER
         MENUITEM "&Slower",                     ID_ANIMATION_SLOWER
         MENUITEM SEPARATOR
         MENUITEM "To File...",                  ID_ANIMATION_TOFILE
+        MENUITEM SEPARATOR
+        MENUITEM "Render &Blur",                ID_ANIMATION_RENDERBLUR
+        MENUITEM "Blur &Value",                 ID_ANIMATION_BLUR
     END
     POPUP "&Help"
     BEGIN
@@ -360,6 +363,17 @@ BEGIN
     LTEXT           "Height",IDC_STATIC,127,56,22,8
 END
 
+IDD_BlurDialog DIALOGEX 0, 0, 320, 200
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Blur Dialog"
+FONT 8, "MS Shell Dlg", 0, 0, 0x0
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,209,179,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,263,179,50,14
+    EDITTEXT        IDC_EDIT_BLUR,115,74,40,14,ES_AUTOHSCROLL
+    LTEXT           "Blur",IDC_STATIC,71,76,13,8
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -470,6 +484,14 @@ BEGIN
         TOPMARGIN, 7
         BOTTOMMARGIN, 193
     END
+
+    IDD_BlurDialog, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 313
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 193
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -521,6 +543,11 @@ BEGIN
 END
 
 IDD_PngRenderDialog AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_BlurDialog AFX_DIALOG_LAYOUT
 BEGIN
     0
 END

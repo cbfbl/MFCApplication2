@@ -17,10 +17,10 @@
 
 #include "Light.h"
 #include <algorithm>
-#include <vector>
 #include <tuple>
-using std::vector;
+#include <vector>
 using std::tuple;
+using std::vector;
 #include "AliasFilter.h"
 #include "GraphicModel.h"
 #include "PngWrapper.h"
@@ -94,6 +94,10 @@ private:
     int animationInterpolVar;
     int animationFramesBetweenKeyFrames;
     const int ANIMATION_FRAMES_STEP = 5;
+
+    double blur;
+    bool blurDone;
+    vector<vector<COLORREF>> cbufferBlur;
 
     void Transform(CPoint diff);
     void Transform(GraphicModel& model, double dx, double dy);
@@ -255,6 +259,8 @@ public:
     afx_msg void OnAnimationFaster();
     afx_msg void OnAnimationSlower();
     afx_msg void OnAnimationToFile();
+    afx_msg void OnAnimationRenderBlur();
+    afx_msg void OnAnimationBlur();
 };
 
 #ifndef _DEBUG // debug version in CGWorkView.cpp

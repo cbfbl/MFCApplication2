@@ -7,6 +7,7 @@
 #define IDD_ObjectSelectionDialog       104
 #define IDD_FineNessDialog              105
 #define IDD_PngRenderDialog             106
+#define IDD_BlurDialog                  107
 #define IDR_MAINFRAME                   128
 #define IDR_CGWorkTYPE                  129
 #define IDD_LIGHTS_DLG                  134
@@ -50,6 +51,7 @@
 #define IDC_EDIT3                       1053
 #define IDC_EDIT_WIDTH                  1055
 #define IDC_EDIT_HEIGHT                 1056
+#define IDC_EDIT_BLUR                   1056
 #define ID_FILE_LOAD                    32771
 #define ID_VIEW_ORTHOGRAPHIC            32772
 #define ID_VIEW_PERSPECTIVE             32773
@@ -134,14 +136,17 @@
 #define ID_ANIMATION_SLOWER             32866
 #define ID_FILE_CLEAR                   32867
 #define ID_ANIMATION_TOFILE             32868
+#define ID_ANIMATION_RENDERBLUR         32869
+#define ID_ANIMATION_BLURVALUE          32870
+#define ID_ANIMATION_BLUR               32871
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        154
-#define _APS_NEXT_COMMAND_VALUE         32869
-#define _APS_NEXT_CONTROL_VALUE         1056
-#define _APS_NEXT_SYMED_VALUE           107
+#define _APS_NEXT_RESOURCE_VALUE        155
+#define _APS_NEXT_COMMAND_VALUE         32872
+#define _APS_NEXT_CONTROL_VALUE         1057
+#define _APS_NEXT_SYMED_VALUE           108
 #endif
 #endif

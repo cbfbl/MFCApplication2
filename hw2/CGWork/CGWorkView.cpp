@@ -16,6 +16,7 @@ using std::endl;
 #include "ObjectSelectionDialog.h"
 #include "PerspectiveCtrlDLG.h"
 #include "PngRenderDialog.h"
+#include "BlurDialog.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -142,6 +143,8 @@ ON_COMMAND(ID_ANIMATION_PLAY, OnAnimationPlay)
 ON_COMMAND(ID_ANIMATION_FASTER, OnAnimationFaster)
 ON_COMMAND(ID_ANIMATION_SLOWER, OnAnimationSlower)
 ON_COMMAND(ID_ANIMATION_TOFILE, OnAnimationToFile)
+ON_COMMAND(ID_ANIMATION_RENDERBLUR, OnAnimationRenderBlur)
+ON_COMMAND(ID_ANIMATION_BLUR, OnAnimationBlur)
 //}}AFX_MSG_MAP
 ON_WM_TIMER()
 ON_WM_KEYUP()
@@ -261,6 +264,10 @@ CCGWorkView::CCGWorkView()
     animationCurrentKeyFrame = 0;
     animationInterpolVar = 0;
     animationFramesBetweenKeyFrames = 6 * ANIMATION_FRAMES_STEP;
+
+    blur = 0.8;
+    blurDone = true;
+    cbufferBlur = vector<vector<COLORREF>>(1);
 }
 
 CCGWorkView::~CCGWorkView()
@@ -418,7 +425,10 @@ void CCGWorkView::OnDraw(CDC* pDC)
 
     vector<vector<COLORREF>> cbufferFiltered(width);
     vector<vector<COLORREF>>* cbufferToUse;
-    if (antiAliasing != ID_ANTIALIASING_NONE) {
+    if (blurDone && cbufferBlur.size() > 1) {
+        cbufferToUse = &cbufferBlur;
+    }
+    else if (antiAliasing != ID_ANTIALIASING_NONE) {
         AliasFilter* filter;
         switch (antiAliasing) {
         case ID_ANTIALIASING_SINC3:
@@ -458,13 +468,14 @@ void CCGWorkView::OnDraw(CDC* pDC)
         RenderScene(width, height);
         cbufferToUse = &cbuffer;
     }
-
-    for (size_t i = 0; i < width; i++) {
-        for (size_t j = 0; j < height; j++) {
-            if ((*cbufferToUse)[i][j] != backgroundColor) {
-                pDCToUse->SetPixel(i, j, (*cbufferToUse)[i][j]);
-            } else if (!bgbuffer.empty()) {
-                pDCToUse->SetPixel(i, j, getBgValue(i, j, width, height));
+    if (blurDone) {
+        for (size_t i = 0; i < width; i++) {
+            for (size_t j = 0; j < height; j++) {
+                if ((*cbufferToUse)[i][j] != backgroundColor) {
+                    pDCToUse->SetPixel(i, j, (*cbufferToUse)[i][j]);
+                } else if (!bgbuffer.empty()) {
+                    pDCToUse->SetPixel(i, j, getBgValue(i, j, width, height));
+                }
             }
         }
     }
@@ -1973,4 +1984,97 @@ void CCGWorkView::OnAnimationToFile()
     animationCurrentKeyFrame = 0;
     animationInterpolVar = 0;
     OnRenderFile();
+}
+
+void CCGWorkView::OnAnimationRenderBlur()
+{
+    blurDone = false;
+    int width = cbuffer.size();
+    int height = cbuffer[0].size();
+    cbufferBlur = vector<vector<COLORREF>>(width);
+    for (size_t i = 0; i < width; i++) {
+        cbufferBlur[i] = vector<COLORREF>(height);
+    }
+
+    animationIsPlaying = true;
+    animationCurrentKeyFrame = 0;
+    animationInterpolVar = 0;
+    bool firstFrame = true;
+    while (1) {
+        if (animationInterpolVar == animationFramesBetweenKeyFrames - 1) {
+            animationCurrentKeyFrame++;
+            animationInterpolVar = 0;
+            if (animationCurrentKeyFrame == models[0].animationKeyFrames.size() - 1) {
+                STATUS_BAR_TEXT(_T("Blur done"));
+                animationIsPlaying = false;
+                blurDone = true;
+                Invalidate();
+                UpdateWindow();
+                cbufferBlur = vector<vector<COLORREF>>(1);
+                break;
+            } else {
+                Invalidate();
+                UpdateWindow();
+                // (Can't be first frame)
+                for (size_t i = 0; i < width; i++) {
+                    for (size_t j = 0; j < height; j++) {
+                        for (size_t i = 0; i < width; i++) {
+                            for (size_t j = 0; j < height; j++) {
+                                COLORREF c = cbuffer[i][j];
+                                int r = GetRValue(c);
+                                int g = GetGValue(c);
+                                int b = GetBValue(c);
+                                COLORREF cb = cbufferBlur[i][j];
+                                int rb = GetRValue(cb);
+                                int gb = GetGValue(cb);
+                                int bb = GetBValue(cb);
+                                rb = blur * rb + (1 - blur) * r;
+                                gb = blur * gb + (1 - blur) * g;
+                                bb = blur * bb + (1 - blur) * b;
+                                cbufferBlur[i][j] = RGB(rb, gb, bb);
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            animationInterpolVar++;
+            Invalidate();
+            UpdateWindow();
+            if (firstFrame) {
+                for (size_t i = 0; i < width; i++) {
+                    for (size_t j = 0; j < height; j++) {
+                        cbufferBlur[i][j] = cbuffer[i][j];
+                    }
+                }
+                firstFrame = false;
+            } else {
+                for (size_t i = 0; i < width; i++) {
+                    for (size_t j = 0; j < height; j++) {
+                        COLORREF c = cbuffer[i][j];
+                        int r = GetRValue(c);
+                        int g = GetGValue(c);
+                        int b = GetBValue(c);
+                        COLORREF cb = cbufferBlur[i][j];
+                        int rb = GetRValue(cb);
+                        int gb = GetGValue(cb);
+                        int bb = GetBValue(cb);
+                        rb = blur * rb + (1 - blur) * r;
+                        gb = blur * gb + (1 - blur) * g;
+                        bb = blur * bb + (1 - blur) * b;
+                        cbufferBlur[i][j] = RGB(rb, gb, bb);
+                    }
+                }
+            }
+        }
+    }
+}
+
+void CCGWorkView::OnAnimationBlur()
+{
+    BlurDialog dlg;
+    dlg.setBlur(blur);
+    if (dlg.DoModal() == IDOK) {
+        blur = dlg.getBlur();
+    }
 }
