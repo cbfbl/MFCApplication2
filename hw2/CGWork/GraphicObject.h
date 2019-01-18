@@ -9,7 +9,7 @@ using std::vector;
 class GraphicObject {
 public:
     GraphicObject();
-    GraphicObject(double rgb[3]);
+    GraphicObject(double rgb[3], double transparency);
     ~GraphicObject();
 
     vector<Edge> boundingBox;
@@ -18,6 +18,7 @@ public:
     int red;
     int green;
     int blue;
+    double transparency;
 
 private:
 

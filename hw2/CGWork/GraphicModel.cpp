@@ -30,6 +30,7 @@ GraphicModel::GraphicModel(CString& name, vector<GraphicObject> graphicObjects)
     translateX = 0;
     translateY = 0;
     translateZ = 0;
+    transparency = 0;
 }
 
 GraphicModel::~GraphicModel()

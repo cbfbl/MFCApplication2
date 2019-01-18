@@ -105,8 +105,6 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "View",                        ID_ACTION_VIEW
         MENUITEM "Object",                      ID_ACTION_OBJECT
-        MENUITEM SEPARATOR
-        MENUITEM "Sele&cted Model...",          ID_ACTION_SELECTEDOBJECT
     END
     POPUP "A&xis"
     BEGIN
@@ -125,6 +123,10 @@ BEGIN
         MENUITEM "FineNess...",                 ID_OPTIONS_FINENESS
         MENUITEM "Perspective Control...",      ID_OPTIONS_PERSPECTIVECONTROL32824
         MENUITEM "Use Calculated Normals",      ID_OPTIONS_USECALCULATEDNORMALS
+    END
+    POPUP "&Model"
+    BEGIN
+        MENUITEM "&All",                        ID_MODEL_ALL
     END
     POPUP "&Light"
     BEGIN
@@ -149,6 +151,7 @@ BEGIN
     BEGIN
         MENUITEM "&Enable",                     ID_FOG_ENABLE
         MENUITEM "&Color...",                   ID_FOG_COLOR
+        MENUITEM "&Factor...",                  ID_FOG_FACTOR
     END
     POPUP "&Background"
     BEGIN
@@ -184,6 +187,11 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "Render &Blur",                ID_ANIMATION_RENDERBLUR
         MENUITEM "Blur &Value",                 ID_ANIMATION_BLUR
+    END
+    POPUP "&Transparency"
+    BEGIN
+        MENUITEM "&Enable",                     ID_TRANSPARENCY_ENABLE
+        MENUITEM "Transparency &Value",         ID_TRANSPARENCY_TRANSPARENCYVALUE
     END
     POPUP "&Help"
     BEGIN
@@ -229,8 +237,8 @@ BEGIN
     LTEXT           "Computer Graphics, MFC with CGWork",IDC_STATIC,40,10,119,8,SS_NOPREFIX
     LTEXT           "Skeleton by: Dani Brunstein",IDC_STATIC,40,23,119,8
     DEFPUSHBUTTON   "OK",IDOK,178,7,50,14,WS_GROUP
-    LTEXT           "Implemented by: <your name>",IDC_STATIC,40,36,119,8
-    LTEXT           "                   and: <your name>",IDC_STATIC,40,49,119,8
+    LTEXT           "Implemented by: Asaf Amnony",IDC_STATIC,40,36,119,8
+    LTEXT           "                   and: Chen Bareket",IDC_STATIC,40,49,119,8
 END
 
 IDD_LIGHTS_DLG DIALOGEX 0, 0, 355, 218
@@ -316,16 +324,6 @@ BEGIN
     CONTROL         "",IDC_SLIDER1,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,19,48,100,15
 END
 
-IDD_ObjectSelectionDialog DIALOGEX 0, 0, 320, 200
-STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "Model Selection Dialog"
-FONT 8, "MS Shell Dlg", 0, 0, 0x0
-BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,209,179,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,263,179,50,14
-    COMBOBOX        IDC_COMBO1,58,33,61,149,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-END
-
 IDD_FineNessDialog DIALOGEX 0, 0, 320, 200
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "FineNess Dialog"
@@ -372,6 +370,30 @@ BEGIN
     PUSHBUTTON      "Cancel",IDCANCEL,263,179,50,14
     EDITTEXT        IDC_EDIT_BLUR,115,74,40,14,ES_AUTOHSCROLL
     LTEXT           "Blur",IDC_STATIC,71,76,13,8
+END
+
+IDD_TransparencyDialog DIALOGEX 0, 0, 320, 200
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Transparency Dialog"
+FONT 8, "MS Shell Dlg", 0, 0, 0x0
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,209,179,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,263,179,50,14
+    LTEXT           "Transparency",IDC_STATIC,68,62,45,8
+    EDITTEXT        IDC_EDIT_TRANSPARENCY,129,61,40,14,ES_AUTOHSCROLL
+END
+
+IDD_FogFactorDialog DIALOGEX 0, 0, 320, 200
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Fog Factor Dialog"
+FONT 8, "MS Shell Dlg", 0, 0, 0x0
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,209,179,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,263,179,50,14
+    EDITTEXT        IDC_EDIT_START,135,65,52,14,ES_AUTOHSCROLL
+    LTEXT           "Fog Start (Z value)",IDC_STATIC,53,67,62,8
+    EDITTEXT        IDC_EDIT_END,135,86,52,14,ES_AUTOHSCROLL
+    LTEXT           "Fog End (Z value)",IDC_STATIC,53,89,58,8
 END
 
 
@@ -453,14 +475,6 @@ BEGIN
         BOTTOMMARGIN, 193
     END
 
-    IDD_ObjectSelectionDialog, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 313
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 193
-    END
-
     IDD_FineNessDialog, DIALOG
     BEGIN
         LEFTMARGIN, 7
@@ -486,6 +500,22 @@ BEGIN
     END
 
     IDD_BlurDialog, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 313
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 193
+    END
+
+    IDD_TransparencyDialog, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 313
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 193
+    END
+
+    IDD_FogFactorDialog, DIALOG
     BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 313
@@ -527,11 +557,6 @@ BEGIN
     0
 END
 
-IDD_ObjectSelectionDialog AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
 IDD_FineNessDialog AFX_DIALOG_LAYOUT
 BEGIN
     0
@@ -548,6 +573,21 @@ BEGIN
 END
 
 IDD_BlurDialog AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_TransparencyDialog AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_ABOUTBOX AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_FogFactorDialog AFX_DIALOG_LAYOUT
 BEGIN
     0
 END

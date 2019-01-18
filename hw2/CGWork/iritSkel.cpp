@@ -129,7 +129,8 @@ bool CGSkelStoreData(IPObjectStruct* PObj)
 {
     int i;
     const char* Str;
-    double RGB[3], Transp;
+    double RGB[3] = { 0, 0, 0 };
+    double Transp = 0;
     IPPolygonStruct* PPolygon;
     IPVertexStruct* PVertex;
     const IPAttributeStruct* Attrs = AttrTraceAttributes(PObj->Attr, PObj->Attr);
@@ -162,7 +163,7 @@ bool CGSkelStoreData(IPObjectStruct* PObj)
         }
     }
 
-    GraphicObject graphicObject(RGB);
+    GraphicObject graphicObject(RGB, Transp);
 
     double minX = DBL_MAX;
     double minY = DBL_MAX;

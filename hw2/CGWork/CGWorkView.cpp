@@ -1,23 +1,7 @@
 // CGWorkView.cpp : implementation of the CCGWorkView class
 //
-#include "CGWork.h"
-#include "stdafx.h"
 
-#include "CGWorkDoc.h"
 #include "CGWorkView.h"
-
-#include <iostream>
-using std::cout;
-using std::endl;
-#include "FineNessDialog.h"
-#include "LightDialog.h"
-#include "MaterialDlg.h"
-#include "MouseSensitivityDialog.h"
-#include "ObjectSelectionDialog.h"
-#include "PerspectiveCtrlDLG.h"
-#include "PngRenderDialog.h"
-#include "BlurDialog.h"
-
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #undef THIS_FILE
@@ -25,9 +9,7 @@ static char THIS_FILE[] = __FILE__;
 #endif
 
 // For Status Bar access
-#include "MainFrm.h"
 
-#include "Mat4.h"
 
 // Use this macro to display text messages in the status bar.
 #define STATUS_BAR_TEXT(str) (((CMainFrame*)GetParentFrame())->getStatusBar().SetWindowText(str))
@@ -98,7 +80,6 @@ ON_COMMAND(ID_ACTION_VIEW, OnActionView)
 ON_COMMAND(ID_ACTION_OBJECT, OnActionObject)
 ON_UPDATE_COMMAND_UI(ID_OPTIONS_USECALCULATEDNORMALS, OnUpdateUseCalculatedNormals)
 ON_COMMAND(ID_OPTIONS_USECALCULATEDNORMALS, OnUseCalculatedNormals)
-ON_COMMAND(ID_ACTION_SELECTEDOBJECT, OnActionSelectedobject)
 ON_COMMAND(ID_OPTIONS_FINENESS, OnOptionsFineness)
 ON_COMMAND(ID_OPTIONS_PERSPECTIVECONTROL32824, OnOptionsPerspectivecontrol32824)
 ON_COMMAND(ID_RENDER_WIREFRAME, OnRenderWireframe)
@@ -117,8 +98,9 @@ ON_COMMAND(ID_BG_STRETCH, OnBgStretch)
 ON_UPDATE_COMMAND_UI(ID_BG_STRETCH, OnUpdateBgStretch)
 ON_COMMAND(ID_BG_REPEAT, OnBgRepeat)
 ON_UPDATE_COMMAND_UI(ID_BG_REPEAT, OnUpdateBgRepeat)
-ON_COMMAND(ID_FOG_COLOR, OnFogColor)
 ON_COMMAND(ID_FOG_ENABLE, OnFogEnable)
+ON_COMMAND(ID_FOG_COLOR, OnFogColor)
+ON_COMMAND(ID_FOG_FACTOR, OnFogFactor)
 ON_COMMAND(ID_ANTIALIASING_NONE, OnAntiAliasingNone)
 ON_UPDATE_COMMAND_UI(ID_ANTIALIASING_NONE, OnUpdateAntiAliasingNone)
 ON_COMMAND(ID_ANTIALIASING_SINC3, OnAntiAliasingSinc3)
@@ -145,6 +127,11 @@ ON_COMMAND(ID_ANIMATION_SLOWER, OnAnimationSlower)
 ON_COMMAND(ID_ANIMATION_TOFILE, OnAnimationToFile)
 ON_COMMAND(ID_ANIMATION_RENDERBLUR, OnAnimationRenderBlur)
 ON_COMMAND(ID_ANIMATION_BLUR, OnAnimationBlur)
+ON_COMMAND(ID_TRANSPARENCY_TRANSPARENCYVALUE, OnTransparency)
+ON_COMMAND(ID_TRANSPARENCY_ENABLE, OnTransparencyEnabled)
+ON_UPDATE_COMMAND_UI(ID_TRANSPARENCY_ENABLE, OnUpdateTransparencyEnabled)
+ON_COMMAND_RANGE(ID_MODEL_ALL, ID_MODEL_ALL + 100, OnModelSelect)
+ON_UPDATE_COMMAND_UI_RANGE(ID_MODEL_ALL, ID_MODEL_ALL + 100, OnUpdateModelSelect)
 //}}AFX_MSG_MAP
 ON_WM_TIMER()
 ON_WM_KEYUP()
@@ -170,8 +157,8 @@ CCGWorkView::CCGWorkView()
     // Set default values
     m_nAxis = ID_AXIS_X;
     m_nAction = ID_ACTION_ROTATE;
-    m_nView = ID_VIEW_ORTHOGRAPHIC;
-    m_bIsPerspective = false;
+    m_nView = ID_VIEW_PERSPECTIVE;
+    m_bIsPerspective = true;
 
     m_nLightShading = ID_LIGHT_SHADING_FLAT;
 
@@ -182,7 +169,8 @@ CCGWorkView::CCGWorkView()
 
     //init the first light to be enabled
     m_lights[LIGHT_ID_1].enabled = true;
-    m_lights[LIGHT_ID_1].type = LIGHT_TYPE_POINT;
+    m_lights[LIGHT_ID_1].type = LIGHT_TYPE_DIRECTIONAL;
+    m_lights[LIGHT_ID_1].dirY = 1;
     m_pDbBitMap = NULL;
     m_pDbDC = NULL;
 
@@ -202,12 +190,14 @@ CCGWorkView::CCGWorkView()
     invertNormals = false;
     renderScreen = false;
     cullBackfaces = false;
-    bonusBackfaceCulling = false;
+    bonusBackfaceCulling = true;
     bgStretch = true;
     useCalculateNormals = true;
+
     enableFog = false;
-    fogColor = RGB(220, 220, 220);
-    //bgbuffer = vector<vector<COLORREF>>(0);
+    fogColor = RGB(192, 192, 192);
+    fogStart = 3;
+    fogEnd = 2;
 
     antiAliasing = ID_ANTIALIASING_NONE;
     filterSinc3 = AliasFilter(3, {
@@ -268,6 +258,8 @@ CCGWorkView::CCGWorkView()
     blur = 0.8;
     blurDone = true;
     cbufferBlur = vector<vector<COLORREF>>(1);
+
+    transparencyEnabled = false;
 }
 
 CCGWorkView::~CCGWorkView()
@@ -427,8 +419,7 @@ void CCGWorkView::OnDraw(CDC* pDC)
     vector<vector<COLORREF>>* cbufferToUse;
     if (blurDone && cbufferBlur.size() > 1) {
         cbufferToUse = &cbufferBlur;
-    }
-    else if (antiAliasing != ID_ANTIALIASING_NONE) {
+    } else if (antiAliasing != ID_ANTIALIASING_NONE) {
         AliasFilter* filter;
         switch (antiAliasing) {
         case ID_ANTIALIASING_SINC3:
@@ -489,7 +480,7 @@ void CCGWorkView::RenderScene(int width, int height)
 {
     double half_w = width / 2;
     double half_h = height / 2;
-
+    
     screen = Mat4(
         Vec4(half_h, 0, 0, half_w),
         Vec4(0, -half_h, 0, half_h),
@@ -497,17 +488,23 @@ void CCGWorkView::RenderScene(int width, int height)
         Vec4(0, 0, 0, 1));
 
     zbuffer = vector<vector<double>>(width);
+    vector<vector<vector<tuple<double, COLORREF, double>>>> zbufferTransparency(width);
     for (size_t i = 0; i < width; i++) {
         zbuffer[i] = vector<double>(height);
+        zbufferTransparency[i] = vector<vector<tuple<double, COLORREF, double>>>(height);
         for (size_t j = 0; j < height; j++) {
             zbuffer[i][j] = DBL_MAX;
+            zbufferTransparency[i][j].push_back(std::make_tuple(DBL_MAX, backgroundColor, 0));
         }
     }
     cbuffer = vector<vector<COLORREF>>(width);
+    vector<vector<COLORREF>> cbufferTransparency(width);
     for (size_t i = 0; i < width; i++) {
         cbuffer[i] = vector<COLORREF>(height);
+        cbufferTransparency[i] = vector<COLORREF>(height);
         for (size_t j = 0; j < height; j++) {
             cbuffer[i][j] = backgroundColor;
+            cbufferTransparency[i][j] = backgroundColor;
         }
     }
 
@@ -833,9 +830,39 @@ void CCGWorkView::RenderScene(int width, int height)
                                     }
                                 }
                             }
+                            zbufferTransparency[current_x][y].push_back(std::make_tuple(current_z, cbuffer[current_x][y], model.transparency));
                         }
                     }
                 }
+            }
+        }
+    }
+    if (transparencyEnabled) {
+        for (size_t i = 0; i < width; i++) {
+            for (size_t j = 0; j < height; j++) {
+                std::sort(zbufferTransparency[i][j].begin(), zbufferTransparency[i][j].end(),
+                    [](std::tuple<double, COLORREF, double> a, std::tuple<double, COLORREF, double> b) { 
+                        double z1 = std::get<0>(a);
+                        double z2 = std::get<0>(b);
+                        return z1 > z2;
+                });
+                vector<std::tuple<double, COLORREF, double>> current_vector = zbufferTransparency[i][j];
+                for (int k = 0; k < current_vector.size(); k++) {
+                    double transparency = std::get<2>(current_vector[k]);
+                    COLORREF current_color = std::get<1>(current_vector[k]);
+                    int Rcolor = GetRValue(current_color);
+                    int Gcolor = GetGValue(current_color);
+                    int Bcolor = GetBValue(current_color);
+                    Rcolor = Rcolor * (1-transparency) + (transparency) * GetRValue(cbufferTransparency[i][j]);
+                    Gcolor = Gcolor * (1-transparency) + (transparency) * GetGValue(cbufferTransparency[i][j]);
+                    Bcolor = Bcolor * (1-transparency) + (transparency) * GetBValue(cbufferTransparency[i][j]);
+                    cbufferTransparency[i][j] = RGB(Rcolor, Gcolor, Bcolor);
+                }
+            }
+        }
+        for (size_t i = 0; i < width; i++) {
+            for (size_t j = 0; j < height; j++) {
+                cbuffer[i][j] = cbufferTransparency[i][j];
             }
         }
     }
@@ -1045,8 +1072,6 @@ COLORREF CCGWorkView::getColorAfterShading(Edge& ne, COLORREF objectColor, Mat4&
     double fogColorG = GetGValue(fogColor) / 255.0;
     double fogColorB = GetBValue(fogColor) / 255.0;
     if (enableFog) {
-        double fogStart = 2; // Z (depth) values, closest to the viewer.
-        double fogEnd = 1; // Z (depth) values, farthest away from the viewer.
         fogFactor = (fogEnd - ne.start.z) / (fogEnd - fogStart);
         fogFactor = max(0, min(1, fogFactor));
     }
@@ -1155,14 +1180,23 @@ void CCGWorkView::OnFileLoad()
         graphicObjects.clear();
         CGSkelProcessIritDataFiles(m_strItdFileName, 1);
         // Open the file and read it.
-        models.push_back(GraphicModel(dlg.GetFileName(), graphicObjects));
+        GraphicModel model(dlg.GetFileName(), graphicObjects);
+        model.transparency = graphicObjects[0].transparency;
+        models.push_back(model);
 
         Invalidate(); // force a WM_PAINT for drawing.
+        
+        CMenu* modelsMenu = AfxGetMainWnd()->GetMenu()->GetSubMenu(5);
+        modelsMenu->AppendMenu(MF_STRING, ID_MODEL_ALL + models.size(), model.name);
     }
 }
 void CCGWorkView::OnFileClear()
 {
     graphicObjects.clear();
+    CMenu* modelsMenu = AfxGetMainWnd()->GetMenu()->GetSubMenu(5);
+    for (size_t i = ID_MODEL_ALL + 1; i <= ID_MODEL_ALL + models.size(); i++) {
+        modelsMenu->RemoveMenu(i, 0);
+    }
     models.clear();
     Invalidate();
 }
@@ -1620,14 +1654,21 @@ void CCGWorkView::OnActionObject()
     object = true;
 }
 
-void CCGWorkView::OnActionSelectedobject()
+void CCGWorkView::OnUpdateModelSelect(CCmdUI* pCmdUI)
 {
-    ObjectSelectionDialog dlg;
-    dlg.setModels(models);
-    dlg.setIndex(modelIdx);
-    dlg.setMaxIndex(models.size());
-    if (dlg.DoModal() == IDOK) {
-        modelIdx = dlg.getIndex();
+    if (pCmdUI->m_nID == ID_MODEL_ALL) {
+        pCmdUI->SetCheck(modelIdx == models.size());
+    } else {
+        pCmdUI->SetCheck(modelIdx == pCmdUI->m_nID - ID_MODEL_ALL - 1);
+    }
+    
+}
+void CCGWorkView::OnModelSelect(UINT nID)
+{
+    if (nID == ID_MODEL_ALL) {
+        modelIdx = models.size();
+    } else {
+        modelIdx = nID - ID_MODEL_ALL - 1;
     }
 }
 
@@ -1818,6 +1859,15 @@ void CCGWorkView::OnUseCalculatedNormals()
     Invalidate();
 }
 
+void CCGWorkView::OnUpdateFogEnable(CCmdUI* pCmdUI)
+{
+    pCmdUI->SetCheck(enableFog);
+}
+void CCGWorkView::OnFogEnable()
+{
+    enableFog = !enableFog;
+    Invalidate();
+}
 void CCGWorkView::OnFogColor()
 {
     CColorDialog colorDialog;
@@ -1828,15 +1878,15 @@ void CCGWorkView::OnFogColor()
         Invalidate();
     }
 }
-
-void CCGWorkView::OnUpdateFogEnable(CCmdUI* pCmdUI)
+void CCGWorkView::OnFogFactor()
 {
-    pCmdUI->SetCheck(enableFog);
-}
-void CCGWorkView::OnFogEnable()
-{
-    enableFog = !enableFog;
-    Invalidate();
+    FogFactorDialog dlg;
+    dlg.SetDialogData(fogStart, fogEnd);
+    if (dlg.DoModal() == IDOK) {
+        fogStart = dlg.getFogStart();
+        fogEnd = dlg.getFogEnd();
+        Invalidate();
+    }
 }
 
 void CCGWorkView::OnUpdateAntiAliasingNone(CCmdUI* pCmdUI)
@@ -2069,7 +2119,6 @@ void CCGWorkView::OnAnimationRenderBlur()
         }
     }
 }
-
 void CCGWorkView::OnAnimationBlur()
 {
     BlurDialog dlg;
@@ -2077,4 +2126,33 @@ void CCGWorkView::OnAnimationBlur()
     if (dlg.DoModal() == IDOK) {
         blur = dlg.getBlur();
     }
+}
+
+void CCGWorkView::OnTransparency()
+{
+    TransparencyDialog dlg;
+    if (modelIdx == models.size()) {
+        dlg.setTransparency(models[0].transparency);
+    } else {
+        dlg.setTransparency(models[modelIdx].transparency);
+    }
+    if (dlg.DoModal() == IDOK) {
+        if (modelIdx == models.size()) {
+            for (int i = 0; i < modelIdx; i++) {
+                models[i].transparency = dlg.getTransparency();
+            }
+        } else {
+            models[modelIdx].transparency = dlg.getTransparency();
+        }
+        Invalidate();
+    }
+}
+void CCGWorkView::OnUpdateTransparencyEnabled(CCmdUI* pCmdUI)
+{
+    pCmdUI->SetCheck(transparencyEnabled);
+}
+void CCGWorkView::OnTransparencyEnabled()
+{
+    transparencyEnabled = !transparencyEnabled;
+    Invalidate();
 }

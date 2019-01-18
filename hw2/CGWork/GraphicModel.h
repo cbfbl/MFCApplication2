@@ -28,6 +28,7 @@ public:
     double translateY;
     double translateZ;
     vector<tuple<double, double, double, double, double, double, double, double, double>> animationKeyFrames; // list of <thetaX, thetaY, thetaZ, scaleX, scaleY, scaleZ, translateX, translateY, translateZ> tuples.
+    double transparency;
 
 private:
 };

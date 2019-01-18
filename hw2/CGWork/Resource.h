@@ -4,10 +4,11 @@
 //
 #define IDD_ABOUTBOX                    100
 #define IDD_MouseSensitivityDialog      103
-#define IDD_ObjectSelectionDialog       104
 #define IDD_FineNessDialog              105
 #define IDD_PngRenderDialog             106
 #define IDD_BlurDialog                  107
+#define IDD_TransparencyDialog          108
+#define IDD_FogFactorDialog             109
 #define IDR_MAINFRAME                   128
 #define IDR_CGWorkTYPE                  129
 #define IDD_LIGHTS_DLG                  134
@@ -44,7 +45,6 @@
 #define IDC_SPEC_EXP                    1042
 #define IDC_SLIDER1                     1043
 #define IDC_STATIC_MOUSE_SENSITIVITY    1044
-#define IDC_COMBO1                      1046
 #define IDC_STATIC_FINENESS             1047
 #define IDC_SLIDER_FINENESS             1048
 #define IDC_EDIT2                       1052
@@ -52,6 +52,9 @@
 #define IDC_EDIT_WIDTH                  1055
 #define IDC_EDIT_HEIGHT                 1056
 #define IDC_EDIT_BLUR                   1056
+#define IDC_EDIT_TRANSPARENCY           1057
+#define IDC_EDIT_START                  1058
+#define IDC_EDIT_END                    1059
 #define ID_FILE_LOAD                    32771
 #define ID_VIEW_ORTHOGRAPHIC            32772
 #define ID_VIEW_PERSPECTIVE             32773
@@ -139,14 +142,19 @@
 #define ID_ANIMATION_RENDERBLUR         32869
 #define ID_ANIMATION_BLURVALUE          32870
 #define ID_ANIMATION_BLUR               32871
+#define ID_TRANSPARENCY_ENABLE          32872
+#define ID_TRANSPARENCY_TRANSPARENCYVALUE 32873
+#define ID_MODEL                        32874
+#define ID_MODEL_ALL                    32875
+#define ID_FOG_FACTOR                   32876
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        155
-#define _APS_NEXT_COMMAND_VALUE         32872
-#define _APS_NEXT_CONTROL_VALUE         1057
-#define _APS_NEXT_SYMED_VALUE           108
+#define _APS_NEXT_RESOURCE_VALUE        158
+#define _APS_NEXT_COMMAND_VALUE         32877
+#define _APS_NEXT_CONTROL_VALUE         1059
+#define _APS_NEXT_SYMED_VALUE           110
 #endif
 #endif

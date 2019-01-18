@@ -9,12 +9,26 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include "gl\gl.h" // Include the standard CGWork  headers
-#include "gl\glu.h" // Add the utility library
 
+
+#include "CGWork.h"
+#include "stdafx.h"
+#include "CGWorkDoc.h"
+#include <iostream>
+using std::cout;
+using std::endl;
+#include "BlurDialog.h"
+#include "FineNessDialog.h"
+#include "FogFactorDialog.h"
+#include "LightDialog.h"
+#include "MainFrm.h"
 #include "Mat4.h"
+#include "MaterialDlg.h"
+#include "MouseSensitivityDialog.h"
+#include "PerspectiveCtrlDLG.h"
+#include "PngRenderDialog.h"
+#include "TransparencyDialog.h"
 #include "iritSkel.h"
-
 #include "Light.h"
 #include <algorithm>
 #include <tuple>
@@ -24,6 +38,11 @@ using std::vector;
 #include "AliasFilter.h"
 #include "GraphicModel.h"
 #include "PngWrapper.h"
+
+#include "gl\gl.h" // Include the standard CGWork  headers
+#include "gl\glu.h" // Add the utility library
+
+
 
 class CCGWorkView : public CView {
 protected: // create from serialization only
@@ -76,11 +95,14 @@ private:
     bool bgStretch;
     bool useCalculateNormals;
     bool bonusBackfaceCulling;
-    bool enableFog;
-    COLORREF fogColor;
     vector<vector<double>> zbuffer;
     vector<vector<COLORREF>> cbuffer;
     vector<vector<COLORREF>> bgbuffer;
+
+    bool enableFog;
+    COLORREF fogColor;
+    double fogStart; // Z (depth) values, closest to the viewer.
+    double fogEnd; // Z (depth) values, farthest away from the viewer.
 
     int antiAliasing;
     AliasFilter filterSinc3, filterSinc5;
@@ -98,6 +120,9 @@ private:
     double blur;
     bool blurDone;
     vector<vector<COLORREF>> cbufferBlur;
+
+    double transparency;
+    bool transparencyEnabled;
 
     void Transform(CPoint diff);
     void Transform(GraphicModel& model, double dx, double dy);
@@ -226,7 +251,6 @@ public:
     afx_msg void OnUpdateActionObject(CCmdUI* pCmdUI);
     afx_msg void OnActionView();
     afx_msg void OnActionObject();
-    afx_msg void OnActionSelectedobject();
     afx_msg void OnOptionsFineness();
     afx_msg void OnOptionsPerspectivecontrol32824();
     afx_msg void OnUpdateUseCalculatedNormals(CCmdUI* pCmdUI);
@@ -234,6 +258,7 @@ public:
     afx_msg void OnFogEnable();
     afx_msg void OnUpdateFogEnable(CCmdUI* pCmdUI);
     afx_msg void OnFogColor();
+    afx_msg void OnFogFactor();
     afx_msg void OnAntiAliasingNone();
     afx_msg void OnUpdateAntiAliasingNone(CCmdUI* pCmdUI);
     afx_msg void OnAntiAliasingSinc3();
@@ -261,6 +286,11 @@ public:
     afx_msg void OnAnimationToFile();
     afx_msg void OnAnimationRenderBlur();
     afx_msg void OnAnimationBlur();
+    afx_msg void OnTransparency();
+    afx_msg void OnTransparencyEnabled();
+    afx_msg void OnUpdateTransparencyEnabled(CCmdUI* pCmdUI);
+    afx_msg void OnUpdateModelSelect(CCmdUI* pCmdUI);
+    afx_msg void OnModelSelect(UINT nID);
 };
 
 #ifndef _DEBUG // debug version in CGWorkView.cpp

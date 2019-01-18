@@ -194,6 +194,7 @@
     </ClCompile>
     <ClCompile Include="Edge.cpp" />
     <ClCompile Include="FineNessDialog.cpp" />
+    <ClCompile Include="FogFactorDialog.cpp" />
     <ClCompile Include="GraphicModel.cpp" />
     <ClCompile Include="GraphicObject.cpp" />
     <ClCompile Include="iritSkel.cpp" />
@@ -211,7 +212,6 @@
     <ClCompile Include="Mat4.cpp" />
     <ClCompile Include="MaterialDlg.cpp" />
     <ClCompile Include="MouseSensitivityDialog.cpp" />
-    <ClCompile Include="ObjectSelectionDialog.cpp" />
     <ClCompile Include="PerspectiveCtrlDLG.cpp" />
     <ClCompile Include="PngRenderDialog.cpp" />
     <ClCompile Include="PngWrapper.cpp" />
@@ -228,6 +228,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <BrowseInformation Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</BrowseInformation>
     </ClCompile>
+    <ClCompile Include="TransparencyDialog.cpp" />
     <ClCompile Include="Vec4.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -241,6 +242,7 @@
     <ClInclude Include="CGWorkView.h" />
     <ClInclude Include="Edge.h" />
     <ClInclude Include="FineNessDialog.h" />
+    <ClInclude Include="FogFactorDialog.h" />
     <ClInclude Include="GraphicModel.h" />
     <ClInclude Include="GraphicObject.h" />
     <ClInclude Include="iritSkel.h" />
@@ -250,7 +252,6 @@
     <ClInclude Include="Mat4.h" />
     <ClInclude Include="MaterialDlg.h" />
     <ClInclude Include="MouseSensitivityDialog.h" />
-    <ClInclude Include="ObjectSelectionDialog.h" />
     <ClInclude Include="PerspectiveCtrlDLG.h" />
     <ClInclude Include="PngRenderDialog.h" />
     <ClInclude Include="PngWrapper.h" />
@@ -281,6 +282,7 @@
     <ClInclude Include="..\include\triv_lib.h" />
     <ClInclude Include="..\include\trng_lib.h" />
     <ClInclude Include="..\include\user_lib.h" />
+    <ClInclude Include="TransparencyDialog.h" />
     <ClInclude Include="Vec4.h" />
   </ItemGroup>
   <ItemGroup>
