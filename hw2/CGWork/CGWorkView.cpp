@@ -486,6 +486,11 @@ void CCGWorkView::RenderScene(int width, int height)
         Vec4(0, -half_h, 0, half_h),
         Vec4(0, 0, 1, 0),
         Vec4(0, 0, 0, 1));
+	screen_inverse = Mat4(
+		Vec4(1 / half_h, 0, 0, -half_w / half_h),
+		Vec4(0, -1 / half_h, 0, 1),
+		Vec4(0, 0, 1, 0),
+		Vec4(0, 0, 0, 1));
 
     zbuffer = vector<vector<double>>(width);
     vector<vector<vector<tuple<double, COLORREF, double>>>> zbufferTransparency(width);
@@ -507,6 +512,7 @@ void CCGWorkView::RenderScene(int width, int height)
             cbufferTransparency[i][j] = backgroundColor;
         }
     }
+	std::set<tuple<int, int, int>> inserted_points;
 
     double a1mT = double((animationFramesBetweenKeyFrames - animationInterpolVar)) / animationFramesBetweenKeyFrames;
     double aT = double(animationInterpolVar) / animationFramesBetweenKeyFrames;
@@ -563,7 +569,7 @@ void CCGWorkView::RenderScene(int width, int height)
             Vec4(0, 1, 0, 0),
             Vec4(0, 0, 1, 3.14),
             Vec4(0, 0, 0, 1));
-        Mat4 t, tp;
+        Mat4 t, tp,no_screen;
         if (!m_bIsPerspective) {
             perspective = Mat4(
                 Vec4(1, 0, 0, 0),
@@ -579,9 +585,11 @@ void CCGWorkView::RenderScene(int width, int height)
         if (object) {
             t = screen * perspective * translateZinit * translate * rotateZ * rotateY * rotateX * scale;
             tp = screen * translateZinit * translate * rotateZ * rotateY * rotateX * scale;
+			no_screen = perspective * translateZinit * translate * rotateZ * rotateY * rotateX * scale;
         } else {
             t = screen * perspective * translateZinit * translate * rotateX * rotateY * rotateZ * scale;
             tp = screen * translateZinit * translate * rotateX * rotateY * rotateZ * scale;
+			no_screen = perspective * translateZinit * translate * rotateX * rotateY * rotateZ * scale;
         }
         for (GraphicObject& o : model.objects) {
             COLORREF objectColor = model.useCustomWireframeColor ? model.wireframeColor : RGB(o.red, o.green, o.blue);
@@ -706,7 +714,7 @@ void CCGWorkView::RenderScene(int width, int height)
                 COLORREF flatShadingColor;
                 if (m_nLightShading == ID_LIGHT_SHADING_FLAT) {
                     Edge ne = getNormalToPolygon(p, t, useCalculateNormals);
-                    flatShadingColor = getColorAfterShading(ne, objectColor, t);
+                    flatShadingColor = getColorAfterShading(ne, objectColor, no_screen);
                 }
 
                 vector<Edge> projectedEdges;
@@ -722,12 +730,12 @@ void CCGWorkView::RenderScene(int width, int height)
 
                     if (m_nLightShading == ID_LIGHT_SHADING_GOURAUD) {
                         Edge neStart = getNormalToVertex(e.start, t, useCalculateNormals);
-                        COLORREF cStart = getColorAfterShading(neStart, objectColor, t);
+                        COLORREF cStart = getColorAfterShading(neStart, objectColor, no_screen);
                         start.r = GetRValue(cStart);
                         start.g = GetGValue(cStart);
                         start.b = GetBValue(cStart);
                         Edge neEnd = getNormalToVertex(e.end, t, useCalculateNormals);
-                        COLORREF cEnd = getColorAfterShading(neEnd, objectColor, t);
+                        COLORREF cEnd = getColorAfterShading(neEnd, objectColor, no_screen);
                         end.r = GetRValue(cEnd);
                         end.g = GetGValue(cEnd);
                         end.b = GetBValue(cEnd);
@@ -790,7 +798,7 @@ void CCGWorkView::RenderScene(int width, int height)
                             scan_edge.end.dirZ = r_p_n_dir.z;
                         }
 
-                        for (double current_x = scan_edge.start.x; current_x <= scan_edge.end.x; current_x++) {
+                        for (double current_x = scan_edge.start.x; current_x < scan_edge.end.x; current_x++) {
                             double current_z = scan_edge.getZ(current_x, y);
                             if ((current_x < zbuffer.size() && current_x >= 0 && y >= 0 && y < zbuffer[0].size()) && current_z < zbuffer[current_x][y]) {
                                 if (cullBackfaces) {
@@ -807,7 +815,7 @@ void CCGWorkView::RenderScene(int width, int height)
                                             Vec4 p_ne_end = p_ne_start + p_n_dir;
                                             p_ne_end.w = 1;
                                             Edge p_ne(p_ne_start, p_ne_end);
-                                            COLORREF phongShadingColor = getColorAfterShading(p_ne, objectColor, t);
+                                            COLORREF phongShadingColor = getColorAfterShading(p_ne, objectColor, no_screen);
                                             cbuffer[current_x][y] = phongShadingColor;
                                         }
                                     } else {
@@ -825,12 +833,18 @@ void CCGWorkView::RenderScene(int width, int height)
                                         Vec4 p_ne_end = p_ne_start + p_n_dir;
                                         p_ne_end.w = 1;
                                         Edge p_ne(p_ne_start, p_ne_end);
-                                        COLORREF phongShadingColor = getColorAfterShading(p_ne, objectColor, t);
+                                        COLORREF phongShadingColor = getColorAfterShading(p_ne, objectColor, no_screen);
                                         cbuffer[current_x][y] = phongShadingColor;
                                     }
                                 }
                             }
-                            zbufferTransparency[current_x][y].push_back(std::make_tuple(current_z, cbuffer[current_x][y], model.transparency));
+							if ((current_x < zbuffer.size() && current_x >= 0 && y >= 0 && y < zbuffer[0].size())) {
+								std::tuple<int, int, int> current_cords = std::make_tuple((int)(current_z*HASH_PRECISION/1000),(int)current_x,y);
+								if (inserted_points.find(current_cords) == inserted_points.end()) {
+									zbufferTransparency[current_x][y].push_back(std::make_tuple(current_z, cbuffer[current_x][y], model.transparency));
+									inserted_points.insert(current_cords);
+								}
+							}   
                         }
                     }
                 }
@@ -849,6 +863,9 @@ void CCGWorkView::RenderScene(int width, int height)
                 vector<std::tuple<double, COLORREF, double>> current_vector = zbufferTransparency[i][j];
                 for (int k = 0; k < current_vector.size(); k++) {
                     double transparency = std::get<2>(current_vector[k]);
+					if (transparency > 1) {
+						transparency = 0;
+					}
                     COLORREF current_color = std::get<1>(current_vector[k]);
                     int Rcolor = GetRValue(current_color);
                     int Gcolor = GetGValue(current_color);
@@ -988,9 +1005,9 @@ COLORREF CCGWorkView::getColorAfterShading(Edge& ne, COLORREF objectColor, Mat4&
     double C = m_nMaterialCosineFactor;
 
     double I[3] = { 0 };
-    double Ia = 0.7;
-    double Id = 0.4;
-    double Is = 0.4;
+    double Ia = 1;
+    double Id = 1;
+    double Is = 1;
 
     // Ambient light:
     double objectColorR = GetRValue(objectColor) / 255.0;
@@ -999,9 +1016,9 @@ COLORREF CCGWorkView::getColorAfterShading(Edge& ne, COLORREF objectColor, Mat4&
     double ambientColorR = m_ambientLight.colorR / 255.0;
     double ambientColorG = m_ambientLight.colorG / 255.0;
     double ambientColorB = m_ambientLight.colorB / 255.0;
-    I[0] = Ia * (A * ambientColorR);
-    I[1] = Ia * (A * ambientColorG);
-    I[2] = Ia * (A * ambientColorB);
+    I[0] = A * ambientColorR * objectColorR;
+    I[1] = A * ambientColorG * objectColorG;
+    I[2] = A * ambientColorB * objectColorB;
 
     int lightsCount = 0;
     for (LightParams& light : m_lights) {
@@ -1023,21 +1040,24 @@ COLORREF CCGWorkView::getColorAfterShading(Edge& ne, COLORREF objectColor, Mat4&
                 // Minus dirY because Y+ is in the down direction on the screen, and we are in image space at this stage.
                 // Same deal for dirZ.
                 // Same deal for dirX.
-                L = Vec4(-light.dirX, -light.dirY, -light.dirZ, 1);
+                L = Vec4(light.dirX, light.dirY, light.dirZ, 1);
             } else if (light.type == LIGHT_TYPE_POINT) {
                 // Minus posY because Y+ is in the down direction on the screen, and we are in image space at this stage.
                 // Same deal for posZ.
-                L = Vec4(light.posX - ne.start.x, -light.posY - ne.start.y, -light.posZ - ne.start.z, 1);
+				L = Vec4(light.posX, -light.posY, -light.posZ, 1) - ne.start;
             } else {
                 continue;
             }
             if (L.x == 0 && L.y == 0 && L.z == 0) {
                 continue;
             }
-            L = L.normalize();
-            double NL = N * L;
+			L = L.normalize();
+			L.w = 0;
+			Vec4 my_normal = (screen_inverse * N).normalize();
+            double NL = my_normal * L;
+			my_normal.w = 0;
             if (NL < 0) {
-                continue;
+				NL = 0;
             }
             // MAYBE: (1-D) * NL * lightColorR  + D * objectColorR
             // MAYBE: (1-D) * NL * lightColorR
@@ -1045,20 +1065,24 @@ COLORREF CCGWorkView::getColorAfterShading(Edge& ne, COLORREF objectColor, Mat4&
             double lightColorR = light.colorR / 255.0;
             double lightColorG = light.colorG / 255.0;
             double lightColorB = light.colorB / 255.0;
-            I[0] += Id * (D * NL * lightColorR) / lightsCount;
-            I[1] += Id * (D * NL * lightColorG) / lightsCount;
-            I[2] += Id * (D * NL * lightColorB) / lightsCount;
+            I[0] += (D * NL * lightColorR * objectColorR) / lightsCount;
+            I[1] += (D * NL * lightColorG * objectColorG) / lightsCount;
+            I[2] += (D * NL * lightColorB * objectColorB) / lightsCount;
             /////////////////
 
             // Specular light:
             // MAYBE: Calculate V = (0,0,1) - ne.start
-            Vec4 R = ((N * 2) * NL - L);
+            Vec4 R = ((my_normal * 2) * NL - L);
             if (R.x == 0 && R.y == 0 && R.z == 0) {
                 continue;
             }
             R = R.normalize();
-            Vec4 V = Vec4(0, 0, 1, 1);
-            double RV = R * V;
+			Vec4 V = Vec4(0, 0, 1, 1);
+			V.w = 0;
+            double RV = -(R * V);
+			if (NL < 0 || RV < 0) {
+				RV = 0;
+			}
             double RVn = pow(RV, C);
             I[0] += Is * (S * RVn * lightColorR) / lightsCount;
             I[1] += Is * (S * RVn * lightColorG) / lightsCount;
@@ -1076,9 +1100,9 @@ COLORREF CCGWorkView::getColorAfterShading(Edge& ne, COLORREF objectColor, Mat4&
         fogFactor = max(0, min(1, fogFactor));
     }
 
-    I[0] = min(1, (1 - fogFactor) * objectColorR * I[0] + fogFactor * fogColorR);
-    I[1] = min(1, (1 - fogFactor) * objectColorG * I[1] + fogFactor * fogColorG);
-    I[2] = min(1, (1 - fogFactor) * objectColorB * I[2] + fogFactor * fogColorB);
+    I[0] = min(1, (1 - fogFactor) * I[0] + fogFactor * fogColorR);
+    I[1] = min(1, (1 - fogFactor) * I[1] + fogFactor * fogColorG);
+    I[2] = min(1, (1 - fogFactor) * I[2] + fogFactor * fogColorB);
 
     return RGB(
         (int)(255 * I[0]),

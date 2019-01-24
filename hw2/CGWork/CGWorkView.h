@@ -33,6 +33,7 @@ using std::endl;
 #include <algorithm>
 #include <tuple>
 #include <vector>
+#include <set>
 using std::tuple;
 using std::vector;
 #include "AliasFilter.h"
@@ -78,6 +79,7 @@ private:
     int drawNormals;
     CPoint lastCursorLocation;
     Mat4 screen;
+	Mat4 screen_inverse;
     vector<GraphicModel> models;
     double projection_d;
     COLORREF normalsColor;
