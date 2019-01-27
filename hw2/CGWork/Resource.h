@@ -146,7 +146,7 @@
 #define ID_TRANSPARENCY_TRANSPARENCYVALUE 32873
 #define ID_MODEL                        32874
 #define ID_MODEL_ALL                    32875
-#define ID_FOG_FACTOR                   32876
+#define ID_FOG_FACTOR                   33876
 
 // Next default values for new objects
 // 
